@@ -45,8 +45,8 @@ public class FanDriver : IFanDriver
     {
         EnsurePath();
         if (_detectedPath == null) return;
-        
-        
+
+
         if (mode != FanMode.Manual)
         {
             ClosePwmStreams();
@@ -54,24 +54,17 @@ public class FanDriver : IFanDriver
 
         string path = Path.Combine(_detectedPath, FilePwmEnable);
 
-        try
-        {
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Write);
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Write);
 
-            byte value = mode switch
-            {
-                FanMode.Auto => (byte)'2',
-                FanMode.Manual => (byte)'1',
-                FanMode.Max => (byte)'0',
-                _ => (byte)'2'
-            };
-
-            fs.WriteByte(value);
-        }
-        catch (Exception ex)
+        byte value = mode switch
         {
-            _logger.LogError(ex, "Failed to set fan mode to {Mode}", mode);
-        }
+            FanMode.Auto => (byte)'2',
+            FanMode.Manual => (byte)'1',
+            FanMode.Max => (byte)'0',
+            _ => (byte)'2'
+        };
+
+        fs.WriteByte(value);
 
     }
 
@@ -90,21 +83,13 @@ public class FanDriver : IFanDriver
 
         Span<byte> buffer = stackalloc byte[4];
 
-        if (Utf8Formatter.TryFormat(safePwm, buffer, out int bytesWritten))
-        {
-            string fileName = isGpu ? FileGpuPwm : FileCpuPwm;
+        if (!Utf8Formatter.TryFormat(safePwm, buffer, out int bytesWritten))
+            return;
+        
+        string fileName = isGpu ? FileGpuPwm : FileCpuPwm;
+        ref FileStream? stream = ref isGpu ? ref _streamGpuPwm : ref _streamCpuPwm;
 
-            ref FileStream? stream = ref isGpu ? ref _streamGpuPwm : ref _streamCpuPwm;
-
-            try
-            {
-                SysFs.WriteBytes(ref stream, Path.Combine(_detectedPath, fileName), buffer.Slice(0, bytesWritten));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to write PWM to {File}", fileName);
-            }
-        }
+        SysFs.WriteBytes(ref stream, Path.Combine(_detectedPath, fileName), buffer.Slice(0, bytesWritten));
     }
 
     private void EnsurePath()

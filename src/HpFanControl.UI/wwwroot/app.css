@@ -1,6 +1,77 @@
-html, body {
+html,
+body {
     user-select: none;
+    overflow: hidden;
+    height: 100vh;
     -webkit-user-select: none;
     -ms-user-select: none;
     -moz-user-select: none;
+}
+
+.resize-edge {
+    position: fixed;
+    z-index: 9998;
+}
+
+.resize-corner {
+    position: fixed;
+    width: 15px;
+    height: 15px;
+    z-index: 9999;
+}
+
+.resize-edge.top {
+    top: 0;
+    left: 15px;
+    right: 15px;
+    height: 5px;
+    cursor: n-resize;
+}
+
+.resize-edge.bottom {
+    bottom: 0;
+    left: 15px;
+    right: 15px;
+    height: 5px;
+    cursor: s-resize;
+}
+
+.resize-edge.left {
+    left: 0;
+    top: 15px;
+    bottom: 15px;
+    width: 5px;
+    cursor: w-resize;
+}
+
+.resize-edge.right {
+    right: 0;
+    top: 15px;
+    bottom: 15px;
+    width: 5px;
+    cursor: e-resize;
+}
+
+.resize-corner.nw {
+    top: 0;
+    left: 0;
+    cursor: nw-resize;
+}
+
+.resize-corner.ne {
+    top: 0;
+    right: 0;
+    cursor: ne-resize;
+}
+
+.resize-corner.sw {
+    bottom: 0;
+    left: 0;
+    cursor: sw-resize;
+}
+
+.resize-corner.se {
+    bottom: 0;
+    right: 0;
+    cursor: se-resize;
 }
