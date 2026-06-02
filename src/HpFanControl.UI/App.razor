@@ -1,10 +1,31 @@
 @page "/"
+@using HpFanControl.UI.Services
+@using HpFanControl.UI.Interop
+@using HpFanControl.UI.Helpers
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="true" />
 <MudPopoverProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
+    <MudAppBar Fixed="true" Elevation="1" @onmousedown="HandleAppBarMouseDown">
+        <MudIcon Icon="@Icons.Material.Filled.Memory" Size="Size.Small" Class="mr-2 ml-2" />
+        <MudText Typo="Typo.subtitle2">HP FAN CONTROL</MudText>
+
+        <MudSpacer />
+
+        <MudButtonGroup class="ml-4" Color="Color.Primary" Variant="Variant.Text" @onmousedown:stopPropagation="true" @ondblclick:stopPropagation="true">
+            <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small" Color="Color.Inherit"
+                           OnClick="MinimizeWindow" />
+            <MudIconButton Icon="@Icons.Material.Filled.CropSquare" Size="Size.Small" Color="Color.Inherit"
+                           OnClick="MaximizeWindow" />
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error"
+                           OnClick="HideWindow" />
+        </MudButtonGroup>
+    </MudAppBar>
+
+    <MudDivider Class="ma-8" />
+
     <MudMainContent Class="pa-8">
         <MudContainer MaxWidth="MaxWidth.ExtraLarge">
             <MudGrid Spacing="6">
@@ -40,7 +61,18 @@
     </MudMainContent>
 </MudLayout>
 
+<div class="resize-corner nw" @onmousedown="() => StartResize(0)"></div>
+<div class="resize-edge top" @onmousedown="() => StartResize(1)"></div>
+<div class="resize-corner ne" @onmousedown="() => StartResize(2)"></div>
+<div class="resize-edge left" @onmousedown="() => StartResize(3)"></div>
+<div class="resize-edge right" @onmousedown="() => StartResize(4)"></div>
+<div class="resize-corner sw" @onmousedown="() => StartResize(5)"></div>
+<div class="resize-edge bottom" @onmousedown="() => StartResize(6)"></div>
+<div class="resize-corner se" @onmousedown="() => StartResize(7)"></div>
+
 @code {
+    [Inject] private WindowActionService WindowService { get; set; }
+    private readonly IntPtr gtkWindow = GtkWindowHelper.GetMainWindowPointer();
     private MudTheme _theme = new();
     protected override void OnInitialized()
     {
@@ -51,33 +83,55 @@
         };
     }
 
+    private void HideWindow() => WindowService.OnHideRequested?.Invoke();
+    private void MinimizeWindow() => WindowService.OnMinimizeRequested?.Invoke();
+    private void MaximizeWindow() => WindowService.OnMaximizeRequested?.Invoke();
+
+    private void DragMove() => NativeMethods.gtk_window_begin_move_drag(gtkWindow, 1, 0, 0, 0);
+
+    private void HandleAppBarMouseDown(MouseEventArgs e)
+    {
+        if (e.Detail == 2) 
+            MaximizeWindow();
+        else
+            DragMove(); 
+    }
+
+    private void StartResize(int edge) => WindowService.OnResizeRequested?.Invoke(edge);
 
     private readonly PaletteDark _darkPalette = new()
-    {
-        Primary = "#00E5FF",
-        Secondary = "#FF6AD5",
-        Background = "#0B0E14",
-        Surface = "#1A1D26",
-        AppbarBackground = "#0B0E14",
-        AppbarText = "#E0E6ED",
-        DrawerBackground = "#12151C",
-        DrawerText = "#E0E6ED",
-        DrawerIcon = "#00E5FF",
-        TextPrimary = "#E0E6ED",
-        TextSecondary = "#94A3B8",
-        TextDisabled = "#475569",
-        ActionDefault = "#B4C6EF",
-        ActionDisabled = "#334155",
-        ActionDisabledBackground = "#1E293B",
-        LinesDefault = "#2D3748",
-        TableLines = "#2D3748",
-        Divider = "#2D3748",
-        OverlayLight = "rgba(0, 229, 255, 0.04)",
-        Info = "#00E5FF",
-        Success = "#00FF9F",
-        Warning = "#FFEE58",
-        Error = "#FF3131",
-        Black = "#050505",
-        White = "#FFFFFF"
-    };
+{
+    Primary = "#3B82F6",
+    Secondary = "#8B5CF6",
+    
+    Background = "#11111A", 
+    Surface = "#1C1C26",
+    AppbarBackground = "#11111A", 
+    
+    AppbarText = "#F1F5F9",
+    TextPrimary = "#F1F5F9",
+    TextSecondary = "#94A3B8",
+    TextDisabled = "#475569",
+    
+    DrawerBackground = "#16161F",
+    DrawerText = "#F1F5F9",
+    DrawerIcon = "#94A3B8",
+    
+    ActionDefault = "#94A3B8",
+    ActionDisabled = "#334155",
+    ActionDisabledBackground = "#191924",
+    LinesDefault = "#2D2D3A",
+    TableLines = "#2D2D3A",
+    Divider = "#2D2D3A",
+    
+    OverlayLight = "rgba(59, 130, 246, 0.05)",
+    
+    Info = "#0EA5E9",
+    Success = "#10B981",
+    Warning = "#F59E0B",
+    Error = "#EF4444",
+    
+    Black = "#050505",
+    White = "#FFFFFF"
+};
 }

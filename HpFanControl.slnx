@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HpFanControl.Core/HpFanControl.Core.csproj" />
+    <Project Path="src/HpFanControl.UI/HpFanControl.UI.csproj" />
+  </Folder>
+</Solution>
