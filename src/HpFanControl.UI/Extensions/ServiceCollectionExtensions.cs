@@ -17,7 +17,7 @@ public static class ServiceCollectionExtensions
         {
             logging.ClearProviders();
             logging.AddConsole();
-            logging.SetMinimumLevel(LogLevel.Information);
+            logging.SetMinimumLevel(LogLevel.Warning);
         });
 
         services.AddSingleton<IHardwareService, HardwareService>();
