@@ -16,62 +16,65 @@
   <div @ref="_containerRef" class="relative w-100" style="@($"height: {Height}px; touch-action: none;")">
 
     <svg @ref="_svgRef" width="@_width" height="@Height"
-         style="overflow: visible; z-index: 10; position: relative; cursor: crosshair;" @onpointerdown="HandlePointerDown"
-         @onpointerup="HandlePointerUp" @onpointerleave="HandlePointerUp" @onpointermove="HandlePointerMove">
+         style="overflow: visible; z-index: 10; position: relative; cursor: pointer;"
+         @onpointerdown="HandlePointerDown"
+         @onpointerup="HandlePointerUp" 
+         @onpointerleave="HandlePointerLeave" 
+         @onpointermove="HandlePointerMove">
 
-      <defs>
-        <linearGradient id="@($"grad-{_guid}")" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="@Color" stop-opacity="0.3" />
-          <stop offset="100%" stop-color="@Color" stop-opacity="0.0" />
-        </linearGradient>
-      </defs>
+      <rect width="100%" height="100%" fill="transparent" />
 
-      @for (int i = 0; i < Points.Count; i++)
-      {
-        var x = GetPointX(i);
-        <line x1="@Invariant(x)" y1="0" x2="@Invariant(x)" y2="@Invariant(Height)" stroke="currentColor"
-              class="mud-text-disabled" stroke-opacity="@(i == 0 || i == Points.Count - 1 ? "0.2" : "0.05")"
-              stroke-width="1" />
-      }
-      @for (int i = 0; i <= 4; i++)
-      {
-        var y = i * (Height / 4.0);
-        <line x1="0" y1="@Invariant(y)" x2="@Invariant(_width)" y2="@Invariant(y)" stroke="currentColor"
-              class="mud-text-disabled" stroke-opacity="0.05" stroke-width="1" />
-      }
+      <g style="pointer-events: none;">
+        <defs>
+          <linearGradient id="@($"grad-{_guid}")" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="@Color" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="@Color" stop-opacity="0.0" />
+          </linearGradient>
+        </defs>
 
-
-      <path d="@_areaPath" fill="@($"url(#grad-{_guid})")" />
-
-      <path d="@_linePath" fill="none" stroke="@Color" stroke-width="2"
-            style="@($"filter: drop-shadow(0 0 6px {Color});")" />
-
-      @{
-        var tempX = GetCurrentTempX();
-        if (tempX >= 0 && tempX <= _width)
+        @for (int i = 0; i < _localPoints.Count; i++)
         {
-          <line x1="@Invariant(tempX)" y1="0" x2="@Invariant(tempX)" y2="@Invariant(Height)" stroke="white"
-                stroke-opacity="0.6" stroke-width="1" stroke-dasharray="4 4" style="transition: x1 0.5s ease, x2 0.5s ease;" />
+          var x = GetPointX(i);
+          <line x1="@Invariant(x)" y1="0" x2="@Invariant(x)" y2="@Invariant(Height)" stroke="currentColor"
+                class="mud-text-disabled" stroke-opacity="@(i == 0 || i == _localPoints.Count - 1 ? "0.2" : "0.05")"
+                stroke-width="1" />
         }
-      }
+        
+        @for (int i = 0; i <= 4; i++)
+        {
+          var y = i * (Height / 4.0);
+          <line x1="0" y1="@Invariant(y)" x2="@Invariant(_width)" y2="@Invariant(y)" stroke="currentColor"
+                class="mud-text-disabled" stroke-opacity="0.05" stroke-width="1" />
+        }
 
-      @for (int i = 0; i < Points.Count; i++)
+        <path d="@_areaPath" fill="@($"url(#grad-{_guid})")" />
+
+        <path d="@_linePath" fill="none" stroke="@Color" stroke-width="2"
+              style="@($"filter: drop-shadow(0 0 6px {Color});")" />
+
+        @{
+          var tempX = GetCurrentTempX();
+          if (tempX >= 0 && tempX <= _width)
+          {
+            <line x1="@Invariant(tempX)" y1="0" x2="@Invariant(tempX)" y2="@Invariant(Height)" stroke="white"
+                  stroke-opacity="0.6" stroke-width="1" stroke-dasharray="4 4" style="transition: x1 0.5s ease, x2 0.5s ease;" />
+          }
+        }
+      </g>
+
+      @for (int i = 0; i < _localPoints.Count; i++)
       {
         var index = i;
-        var p = Points[index];
+        var p = _localPoints[index];
         var x = GetPointX(index);
         var y = GetPwmY(p.Speed);
         var isHovered = _hoverIndex == index;
         var isDragging = _draggingIndex == index;
 
-        <g class="cursor-pointer" @onpointerenter="() => _hoverIndex = index" @onpointerleave="() => _hoverIndex = null">
-
-          <rect x="@Invariant(x - StepX / 2)" y="0" width="@Invariant(StepX)" height="@Invariant(Height)"
-                fill="transparent" />
-
+        <g style="pointer-events: none;">
+          
           <line x1="@Invariant(x)" y1="0" x2="@Invariant(x)" y2="@Invariant(Height)" stroke="@Color" stroke-width="1"
                 opacity="@(isHovered || isDragging ? 0.5 : 0)" style="transition: opacity 0.1s" />
-
 
           <circle cx="@Invariant(x)" cy="@Invariant(y)" r="@(isDragging ? 8 : 5)"
                   fill="@(isDragging ? "#fff" : "#1e1e2e")" stroke="@Color" stroke-width="2"

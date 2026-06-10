@@ -4,7 +4,7 @@
   <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween">
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-      <MudAvatar Variant="Variant.Filled" Color="@(IsReadOnly? Color.Secondary: Color.Primary)" Rounded="true">
+      <MudAvatar Variant="Variant.Filled" Color="@(IsReadOnly ? Color.Secondary : Color.Primary)" Rounded="true">
         <MudIcon Icon="@Icons.Material.Filled.ShowChart" />
       </MudAvatar>
       <MudStack Spacing="0">
@@ -15,7 +15,7 @@
       </MudStack>
     </MudStack>
 
-    <MudChip T="string" Variant="Variant.Outlined" Color="@(IsReadOnly? Color.Secondary: Color.Success)"
+    <MudChip T="string" Variant="Variant.Outlined" Color="@(IsReadOnly ? Color.Secondary : Color.Success)"
              Size="Size.Small" Icon="@(IsReadOnly ? Icons.Material.Filled.Lock : Icons.Material.Filled.Edit)">
       @(IsReadOnly ? "VIEW ONLY" : "EDIT MODE")
     </MudChip>
@@ -26,13 +26,13 @@
   <MudStack Spacing="6" Class="@(IsReadOnly ? "opacity-60 filter-grayscale pointer-events-none" : "")"
             Style="transition: all 0.3s ease;">
 
-    <CurveEditor Title="CPU FAN" Color="#f43f5e" Points="@_draftConfig.CpuCurve" CurrentTemp="@CurrentCpuTemp"
-                 OnChanged="OnCurveEdited" />
+    <CurveEditor Title="CPU FAN" Color="#f43f5e" @bind-Points="@_draftConfig.CpuCurve"
+                 @bind-Points:after="OnCurveEdited" CurrentTemp="@CurrentCpuTemp" />
 
     <MudDivider />
 
-    <CurveEditor Title="GPU FAN" Color="#00e5ff" Points="@_draftConfig.GpuCurve" CurrentTemp="@CurrentGpuTemp"
-                 OnChanged="OnCurveEdited" />
+    <CurveEditor Title="GPU FAN" Color="#00e5ff" @bind-Points="@_draftConfig.GpuCurve"
+                 @bind-Points:after="OnCurveEdited" CurrentTemp="@CurrentGpuTemp" />
   </MudStack>
 
   <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
