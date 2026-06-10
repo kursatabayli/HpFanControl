@@ -10,8 +10,6 @@ namespace HpFanControl.UI.Services;
 
 public class LinuxTrayService
 {
-    public bool IsUiVisible { get; private set; } = false;
-
     private bool _isUpdatingUi = false;
     private IntPtr _indicator;
     private IntPtr _menu;
@@ -22,21 +20,19 @@ public class LinuxTrayService
 
     private readonly List<NativeMethods.GCallback> _keepAliveDelegates = [];
     private readonly IFanControllerService _fanService;
+    private readonly WindowActionService _windowService;
     private readonly Action<Action> _invokeOnUI;
-    private readonly Action _onShowUiRequested;
-    private readonly Action _onHideUiRequested;
     private readonly Action _onExitRequested;
 
     private readonly string _iconAuto = Path.Combine(AppContext.BaseDirectory, "wwwroot", "fan-auto.svg");
     private readonly string _iconManual = Path.Combine(AppContext.BaseDirectory, "wwwroot", "fan-manual.svg");
     private readonly string _iconMax = Path.Combine(AppContext.BaseDirectory, "wwwroot", "fan-max.svg");
 
-    public LinuxTrayService(IFanControllerService fanService, Action<Action> invokeOnUI, Action onShowUiRequested, Action onHideUiRequested, Action onExitRequested)
+    public LinuxTrayService(IFanControllerService fanService, WindowActionService windowService, Action<Action> invokeOnUI, Action onExitRequested)
     {
         _fanService = fanService;
+        _windowService = windowService;
         _invokeOnUI = invokeOnUI;
-        _onShowUiRequested = onShowUiRequested;
-        _onHideUiRequested = onHideUiRequested;
         _onExitRequested = onExitRequested;
 
         InitializeTray();
@@ -49,17 +45,26 @@ public class LinuxTrayService
         _indicator = NativeMethods.app_indicator_new("hp-fan-control", "utilities-system-monitor", 1);
         _menu = NativeMethods.gtk_menu_new();
 
-        _menuItemToggleUi = NativeMethods.gtk_menu_item_new_with_label("Show");
+        _menuItemToggleUi = NativeMethods.gtk_menu_item_new_with_label("Hide");
+
         NativeMethods.GCallback toggleCallback = (widget, data) =>
         {
-            if (IsUiVisible)
-                _onHideUiRequested?.Invoke();
-            else
-                _onShowUiRequested?.Invoke();
+           _windowService.ToggleVisibility();
         };
+
         _keepAliveDelegates.Add(toggleCallback);
         NativeMethods.g_signal_connect_data(_menuItemToggleUi, "activate", toggleCallback, IntPtr.Zero, IntPtr.Zero, 0);
         NativeMethods.gtk_menu_shell_append(_menu, _menuItemToggleUi);
+
+        _windowService.OnVisibilityChanged += () =>
+        {
+            _invokeOnUI(() =>
+            {
+                string newLabel = _windowService.IsVisible ? "Hide" : "Show";
+                NativeMethods.gtk_menu_item_set_label(_menuItemToggleUi, newLabel);
+            });
+        };
+
         AddSeparator();
 
         AddHeader("Fan Modes");
@@ -71,32 +76,15 @@ public class LinuxTrayService
         AddSeparator();
         AddMenuItem("Exit", _onExitRequested);
 
-        NativeMethods.app_indicator_set_menu(_indicator, _menu);
+        ApplyMenuState(_fanService.CurrentMode);
+
         NativeMethods.gtk_widget_show_all(_menu);
+        NativeMethods.app_indicator_set_menu(_indicator, _menu);
         NativeMethods.app_indicator_set_status(_indicator, 1);
 
         _fanService.ModeChanged += OnFanModeChanged;
-
-        Task.Run(async () =>
-        {
-            await Task.Delay(100);
-
-            _invokeOnUI(() =>
-            {
-                ApplyMenuState(_fanService.CurrentMode);
-            });
-        });
     }
 
-    public void SetUiVisibilityState(bool isVisible)
-    {
-        _invokeOnUI(() =>
-        {
-            IsUiVisible = isVisible;
-            string newLabel = isVisible ? "Hide" : "Show";
-            NativeMethods.gtk_menu_item_set_label(_menuItemToggleUi, newLabel);
-        });
-    }
     private void OnFanModeChanged(FanMode newMode)
     {
         _invokeOnUI(() =>

@@ -1,48 +1,54 @@
 using System;
 using System.Linq;
-using System.Threading;
+using InfiniFrame;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Photino.Blazor;
 
 namespace HpFanControl.UI.Helpers;
 
 public static class AppStartupHelper
 {
-    public static bool HandleCommandLineArgs(string[] args)
+    public static bool ShouldStartNewInstance(string[] args)
     {
-        if (args.Contains("--toggle-ui"))
-        {
-            IpcManager.SendMessage("TOGGLE_UI");
-            return true;
-        }
+        string message = "SHOW_UI";
+        bool isToggleModeCommand = false;
+
         if (args.Contains("--toggle-mode"))
         {
-            IpcManager.SendMessage("TOGGLE_MODE");
-            return true;
+            message = "TOGGLE_MODE";
+            isToggleModeCommand = true;
         }
-        return false;
-    }
-
-    public static Mutex EnsureSingleInstance()
-    {
-        var mutex = new Mutex(true, "HpFanControl_Mutex_" + Environment.UserName, out bool createdNew);
-        if (!createdNew)
+        else if (args.Contains("--toggle-ui"))
         {
-            IpcManager.SendMessage("TOGGLE_UI");
-            Environment.Exit(0);
+            message = "TOGGLE_UI";
         }
-        return mutex;
+        else if (args.Contains("--hidden"))
+        {
+            message = "PING";
+        }
+
+        bool isAlreadyRunning = IpcManager.TrySendMessage(message);
+
+        if (isAlreadyRunning)
+            return false;
+
+        if (isToggleModeCommand)
+            return false;
+
+        return true;
     }
 
-    public static void ConfigureGlobalExceptions(PhotinoBlazorApp app)
+    public static void ConfigureGlobalExceptions(IServiceProvider serviceProvider, IInfiniFrameWindow mainWindow)
     {
         AppDomain.CurrentDomain.UnhandledException += (sender, error) =>
         {
             var ex = error.ExceptionObject as Exception;
-            var logger = app.Services.GetRequiredService<ILogger<Program>>();
+            var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
             logger.LogCritical(ex, "Fatal application crash detected!");
-            app.MainWindow.ShowMessage("Fatal Error", ex?.Message ?? "Unknown error");
+            mainWindow.Invoke(() =>
+            {
+                mainWindow.ShowMessage("Fatal Error", ex?.Message ?? "Unknown error");
+            });
         };
     }
 }

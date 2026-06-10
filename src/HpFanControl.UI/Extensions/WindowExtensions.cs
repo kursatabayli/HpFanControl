@@ -1,73 +1,79 @@
 using System;
-using System.Threading.Tasks;
+using System.IO;
 using HpFanControl.UI.Helpers;
 using HpFanControl.UI.Interop;
 using HpFanControl.UI.Services;
-using Photino.Blazor;
+using InfiniFrame;
+using InfiniFrame.BlazorWebView;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HpFanControl.UI.Extensions;
 
 public static class WindowExtensions
 {
-    public static void ConfigureAndRunWindow(this PhotinoBlazorApp app, bool startHidden, LinuxTrayService trayService)
+    public static void ConfigureAndRunWindow(this InfiniFrameBlazorAppBuilder appBuilder, bool startHidden)
     {
+        string iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "favicon.ico");
+        IServiceProvider? serviceProvider = null;
+
+        appBuilder.WithInfiniFrameWindowBuilder(builder =>
+        {
 #if !DEBUG
-        app.MainWindow.SetDevToolsEnabled(false).SetContextMenuEnabled(false);
+            builder.SetDevToolsEnabled(false).SetContextMenuEnabled(false);
 #endif
 
-        app.MainWindow
-            .SetIconFile("favicon.ico")
+            builder.SetIconFile(iconPath)
             .SetTitle("HP Fan Control")
-            .SetLogVerbosity(0)
             .SetUseOsDefaultSize(false)
             .SetChromeless(true)
-            .SetSize(1600, 900)
+            .SetResizable(true)
+            .SetMaximized(true)
+            .SetZoomEnabled(false)
+            .SetMinSize(1600, 900)
             .Center();
 
-        app.MainWindow.RegisterWindowCreatedHandler((sender, e) =>
-        {
-            IntPtr windowPointer = GtkWindowHelper.GetMainWindowPointer();
-            if (windowPointer != IntPtr.Zero)
+            builder.RegisterWindowCreatedHandler(window =>
             {
-                IntPtr webViewPointer = NativeMethods.gtk_bin_get_child(windowPointer);
-                if (webViewPointer != IntPtr.Zero)
+                IntPtr windowPointer = GtkWindowHelper.GetMainWindowPointer(window.Title);
+                if (windowPointer != IntPtr.Zero)
                 {
-                    IntPtr gesturePointer = NativeMethods.g_object_get_data(webViewPointer, "wk-view-zoom-gesture");
-                    if (gesturePointer != IntPtr.Zero)
-                        NativeMethods.gtk_event_controller_set_propagation_phase(gesturePointer, 0);
+                    if (startHidden)
+                        NativeMethods.gtk_widget_hide(windowPointer);
+
+                    IntPtr webViewPointer = NativeMethods.gtk_bin_get_child(windowPointer);
+                    if (webViewPointer != IntPtr.Zero)
+                    {
+                        IntPtr gesturePointer = NativeMethods.g_object_get_data(webViewPointer, "wk-view-zoom-gesture");
+                        if (gesturePointer != IntPtr.Zero)
+                            NativeMethods.gtk_event_controller_set_propagation_phase(gesturePointer, 0);
+                    }
                 }
-            }
+            });
+
+
+            builder.RegisterWindowClosingHandler((window, e) =>
+            {
+                var windowAction = serviceProvider?.GetRequiredService<WindowActionService>();
+                windowAction?.TriggerHide();
+                return WindowClosingResult.Cancel;
+            });
         });
 
-        app.MainWindow.RegisterWindowClosingHandler((sender, e) =>
-        {
-            IntPtr gtkWindow = GtkWindowHelper.GetMainWindowPointer();
-            if (gtkWindow != IntPtr.Zero)
-            {
-                NativeMethods.gtk_widget_hide(gtkWindow);
-                trayService?.SetUiVisibilityState(false);
-            }
-            return true;
-        });
+
+        InfiniFrameBlazorApp app = appBuilder.Build();
+
+        serviceProvider = app.ServiceProvider;
+
+        var mainWindow = serviceProvider.GetRequiredService<IInfiniFrameWindow>();
+        var windowActionService = serviceProvider.GetRequiredService<WindowActionService>();
+
+        AppStartupHelper.ConfigureGlobalExceptions(serviceProvider, mainWindow);
+        AppBootstrapper.InitializeServices(serviceProvider, mainWindow);
 
         if (startHidden)
-        {
-            Task.Delay(100).ContinueWith(_ =>
-            {
-                app.MainWindow.Invoke(() =>
-                {
-                    IntPtr gtkWindow = GtkWindowHelper.GetMainWindowPointer();
-                    if (gtkWindow != IntPtr.Zero)
-                        NativeMethods.gtk_widget_hide(gtkWindow);
-
-                    trayService?.SetUiVisibilityState(false);
-                });
-            });
-        }
+            windowActionService.TriggerHide();
         else
-        {
-            app.MainWindow.Invoke(() => trayService?.SetUiVisibilityState(true));
-        }
+            windowActionService.TriggerShow();
 
         app.Run();
     }

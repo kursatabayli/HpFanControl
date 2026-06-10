@@ -6,8 +6,12 @@ namespace HpFanControl.UI.Helpers;
 
 public static class GtkWindowHelper
 {
-    public static IntPtr GetMainWindowPointer()
+    private static IntPtr _cachedWindowPointer = IntPtr.Zero;
+    public static IntPtr GetMainWindowPointer(string windowTitle)
     {
+        if (_cachedWindowPointer != IntPtr.Zero)
+            return _cachedWindowPointer;
+
         IntPtr list = NativeMethods.gtk_window_list_toplevels();
         if (list == IntPtr.Zero) return IntPtr.Zero;
 
@@ -22,7 +26,7 @@ public static class GtkWindowHelper
             if (titlePtr != IntPtr.Zero)
             {
                 string title = Marshal.PtrToStringUTF8(titlePtr);
-                if (title == "HP Fan Control")
+                if (title == windowTitle)
                 {
                     targetWindow = widget;
                     break;
@@ -33,6 +37,9 @@ public static class GtkWindowHelper
         }
 
         NativeMethods.g_list_free(list);
+
+        if (targetWindow != IntPtr.Zero)
+            _cachedWindowPointer = targetWindow;
 
         return targetWindow;
     }
