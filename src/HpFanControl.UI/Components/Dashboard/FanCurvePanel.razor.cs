@@ -5,7 +5,7 @@ using HpFanControl.Core.Services.Interfaces;
 using System.Linq;
 using System;
 
-namespace HpFanControl.UI.Components;
+namespace HpFanControl.UI.Components.Dashboard;
 
 public partial class FanCurvePanel : ComponentBase, IDisposable
 {

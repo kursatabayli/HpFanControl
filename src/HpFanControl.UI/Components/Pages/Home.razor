@@ -1,0 +1,28 @@
+@page "/"
+
+<MudGrid Spacing="6">
+    <MudItem xs="12" md="4" lg="3">
+        <MudStack Spacing="4">
+
+            <MudPaper Elevation="4" Class="pa-5">
+                <MudStack Spacing="4">
+                    <StatusHeader />
+                    <MudDivider />
+                    <ModeSelector />
+                </MudStack>
+            </MudPaper>
+
+            <MudText Typo="Typo.overline" Color="Color.Primary" Class="px-2 fw-bold">
+                REAL-TIME SENSORS
+            </MudText>
+
+            <StatsDisplay />
+        </MudStack>
+    </MudItem>
+
+    <MudItem xs="12" md="8" lg="9">
+        <MudPaper Elevation="1" Outlined="true" Class="pa-4 mud-height-full">
+            <FanCurvePanel />
+        </MudPaper>
+    </MudItem>
+</MudGrid>

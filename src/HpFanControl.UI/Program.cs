@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Linq;
+using HpFanControl.UI.Components;
 using HpFanControl.UI.Extensions;
 using HpFanControl.UI.Helpers;
-using HpFanControl.UI.Services;
 using InfiniFrame.BlazorWebView;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace HpFanControl.UI;
 

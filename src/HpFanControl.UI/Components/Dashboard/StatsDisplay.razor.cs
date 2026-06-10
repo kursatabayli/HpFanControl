@@ -5,7 +5,7 @@ using MudBlazor;
 using HpFanControl.UI.Models;
 using System;
 
-namespace HpFanControl.UI.Components;
+namespace HpFanControl.UI.Components.Dashboard;
 
 public partial class StatsDisplay : ComponentBase, IDisposable
 {

@@ -4,7 +4,7 @@ using HpFanControl.Core.Services.Interfaces;
 using MudBlazor;
 using System;
 
-namespace HpFanControl.UI.Components;
+namespace HpFanControl.UI.Components.Dashboard;
 
 public partial class StatusHeader : ComponentBase, IDisposable
 {

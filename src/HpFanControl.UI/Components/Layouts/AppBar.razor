@@ -1,0 +1,35 @@
+@using HpFanControl.UI.Services
+@inject WindowActionService WindowService
+
+<MudAppBar Fixed="true" Elevation="1" @onmousedown="HandleAppBarMouseDown">
+    <MudIcon Icon="@Icons.Material.Filled.Memory" Size="Size.Small" Class="mr-2 ml-2" />
+    <MudText Typo="Typo.subtitle2">HP FAN CONTROL</MudText>
+
+    <MudSpacer />
+
+    <MudButtonGroup class="ml-4" Color="Color.Primary" Variant="Variant.Text" @onmousedown:stopPropagation="true"
+                    @ondblclick:stopPropagation="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small" Color="Color.Inherit"
+                       OnClick="MinimizeWindow" />
+        <MudIconButton Icon="@Icons.Material.Filled.CropSquare" Size="Size.Small" Color="Color.Inherit"
+                       OnClick="MaximizeWindow" />
+        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="HideWindow" />
+    </MudButtonGroup>
+</MudAppBar>
+
+@code {
+    private void HideWindow() => WindowService.TriggerHide();
+    private void MinimizeWindow() => WindowService.TriggerMinimize();
+    private void MaximizeWindow() => WindowService.TriggerMaximize();
+    private void DragMove() => WindowService.TriggerDragMove();
+
+    private void HandleAppBarMouseDown(MouseEventArgs e)
+    {
+        if (e.Detail == 2)
+            MaximizeWindow();
+        else
+            DragMove();
+    }
+
+
+}
