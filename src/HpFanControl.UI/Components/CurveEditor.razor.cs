@@ -13,13 +13,15 @@ namespace HpFanControl.UI.Components;
 
 public partial class CurveEditor : ComponentBase, IAsyncDisposable
 {
-  [Parameter] public List<FanCurvePoint> Points { get; set; } = new();
+  [Parameter] public List<FanCurvePoint> Points { get; set; } = [];
   [Parameter] public string Title { get; set; } = "Fan Curve";
   [Parameter] public string Color { get; set; } = "#00e5ff";
   [Parameter] public int CurrentTemp { get; set; } = 0;
-  [Parameter] public EventCallback OnChanged { get; set; }
+  [Parameter] public EventCallback<List<FanCurvePoint>> PointsChanged { get; set; }
 
   [Inject] private IJSRuntime JS { get; set; } = default!;
+
+  private List<FanCurvePoint> _localPoints = [];
 
   private ElementReference _containerRef;
   private ElementReference _svgRef;
@@ -36,7 +38,7 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
 
   private BoundingClientRect? _cachedSvgRect;
 
-  private double StepX => Points.Count > 1 ? (_width - 2 * PaddingX) / (Points.Count - 1) : 0;
+  private double StepX => _localPoints.Count > 1 ? (_width - 2 * PaddingX) / (_localPoints.Count - 1) : 0;
 
   private string _linePath => BuildPath(false);
   private string _areaPath => BuildPath(true);
@@ -58,6 +60,14 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
     }
   }
 
+  protected override void OnParametersSet()
+  {
+    if (!_draggingIndex.HasValue)
+    {
+      _localPoints = Points.ToList();
+    }
+  }
+
   [JSInvokable]
   public void OnResize(double width)
   {
@@ -68,22 +78,17 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
     }
   }
 
-  private async Task HandlePointerDown(PointerEventArgs e)
+  private void HandlePointerDown(PointerEventArgs e)
   {
-    int count = Points.Count;
-    double step = StepX;
-    double halfStep = step / 2;
+    int count = _localPoints.Count;
+    double halfStep = StepX / 2;
 
     for (int i = 0; i < count; i++)
     {
       if (Math.Abs(e.OffsetX - GetPointX(i)) < halfStep)
       {
         _draggingIndex = i;
-
-        _cachedSvgRect = await JS.InvokeAsync<BoundingClientRect>("curveEditor.getBoundingClientRect", _svgRef);
-
         UpdateSpeed(i, e.OffsetY);
-
         break;
       }
     }
@@ -96,7 +101,7 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
       _draggingIndex = null;
       _cachedSvgRect = null;
 
-      await OnChanged.InvokeAsync();
+      await PointsChanged.InvokeAsync(_localPoints);
     }
   }
 
@@ -104,38 +109,51 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
   {
     if (_draggingIndex.HasValue)
     {
-      double relativeY;
-
-      if (_cachedSvgRect != null)
-      {
-        relativeY = e.ClientY - _cachedSvgRect.Top;
-      }
-      else
-      {
-        relativeY = e.OffsetY;
-      }
-
-      UpdateSpeed(_draggingIndex.Value, relativeY);
+      UpdateSpeed(_draggingIndex.Value, e.OffsetY);
     }
+    else
+    {
+      int count = _localPoints.Count;
+      double halfStep = StepX / 2;
+      int? newHoverIndex = null;
+
+      for (int i = 0; i < count; i++)
+      {
+        if (Math.Abs(e.OffsetX - GetPointX(i)) < halfStep)
+        {
+          newHoverIndex = i;
+          break;
+        }
+      }
+
+      if (_hoverIndex != newHoverIndex)
+      {
+        _hoverIndex = newHoverIndex;
+      }
+    }
+  }
+  private async Task HandlePointerLeave(PointerEventArgs e)
+  {
+    _hoverIndex = null;
+    await HandlePointerUp(e);
   }
 
   private void UpdateSpeed(int index, double currentY)
   {
     int newPwm = YToPwm(currentY);
 
-    if (Points[index].Speed != newPwm)
+    if (_localPoints[index].Speed != newPwm)
     {
-      Points[index] = Points[index] with { Speed = newPwm };
-
+      _localPoints[index] = _localPoints[index] with { Speed = newPwm };
     }
   }
 
   private double GetCurrentTempX()
   {
-    if (Points.Count == 0) return -100;
+    if (_localPoints.Count == 0) return -100;
 
-    double minTemp = Points[0].Temperature;
-    double maxTemp = Points[^1].Temperature;
+    double minTemp = _localPoints[0].Temperature;
+    double maxTemp = _localPoints[^1].Temperature;
 
     double clamped = Math.Clamp(CurrentTemp, minTemp, maxTemp);
     double range = maxTemp - minTemp;
@@ -156,24 +174,24 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
 
   private string BuildPath(bool isArea)
   {
-    if (Points.Count == 0) return "";
+    if (_localPoints.Count == 0) return "";
 
-    var sb = new StringBuilder(Points.Count * 25 + 50);
+    var sb = new StringBuilder(_localPoints.Count * 25 + 50);
 
-    for (int i = 0; i < Points.Count; i++)
+    for (int i = 0; i < _localPoints.Count; i++)
     {
       sb.Append(i == 0 ? "M" : "L");
 
       sb.Append(' ');
       sb.Append(Invariant(GetPointX(i)));
       sb.Append(' ');
-      sb.Append(Invariant(GetPwmY(Points[i].Speed)));
+      sb.Append(Invariant(GetPwmY(_localPoints[i].Speed)));
     }
 
     if (isArea)
     {
       sb.Append(" L ");
-      sb.Append(Invariant(GetPointX(Points.Count - 1)));
+      sb.Append(Invariant(GetPointX(_localPoints.Count - 1)));
       sb.Append(' ');
       sb.Append(Invariant(Height));
 

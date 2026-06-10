@@ -65,7 +65,6 @@ public class FanControllerService : IFanControllerService, IDisposable
         _cts?.Cancel();
 
         _periodicTimer?.Dispose();
-        _periodicTimer = null;
 
         _hardware.ForceResetFanMode();
 
@@ -109,9 +108,11 @@ public class FanControllerService : IFanControllerService, IDisposable
 
     private async Task RunLoopAsync(CancellationToken token)
     {
+        var timer = _periodicTimer;
+
         try
         {
-            while (await _periodicTimer!.WaitForNextTickAsync(token))
+            while (timer != null && await timer.WaitForNextTickAsync(token))
             {
                 UpdateCycle();
             }

@@ -2,7 +2,9 @@
 using System.Linq;
 using HpFanControl.UI.Extensions;
 using HpFanControl.UI.Helpers;
-using Photino.Blazor;
+using HpFanControl.UI.Services;
+using InfiniFrame.BlazorWebView;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HpFanControl.UI;
 
@@ -11,20 +13,15 @@ class Program
     [STAThread]
     static void Main(string[] args)
     {
-        if (AppStartupHelper.HandleCommandLineArgs(args)) return;
+        if (!AppStartupHelper.ShouldStartNewInstance(args))
+            return;
 
-        using var appMutex = AppStartupHelper.EnsureSingleInstance();
-
-        var appBuilder = PhotinoBlazorAppBuilder.CreateDefault(args);
+        var appBuilder = InfiniFrameBlazorAppBuilder.CreateDefault(args);
         appBuilder.Services.AddApplicationServices();
         appBuilder.RootComponents.Add<App>("app");
-        
-        var app = appBuilder.Build();
 
-        AppStartupHelper.ConfigureGlobalExceptions(app);
-        var trayService = AppBootstrapper.InitializeServices(app);
 
-        bool startHidden = args.Contains("--hidden");
-        app.ConfigureAndRunWindow(startHidden, trayService);
+        bool startHidden = args.Contains("--hidden") && !args.Contains("--toggle-ui");
+        appBuilder.ConfigureAndRunWindow(startHidden);
     }
 }

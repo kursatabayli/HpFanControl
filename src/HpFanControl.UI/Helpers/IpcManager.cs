@@ -9,18 +9,20 @@ public static class IpcManager
 {
     private static readonly string PipeName = "HpFanControlPipe_" + Environment.UserName;
 
-    public static void SendMessage(string message)
+    public static bool TrySendMessage(string message)
     {
         try
         {
             using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
-            client.Connect(1000); 
+            client.Connect(200); 
             using var writer = new StreamWriter(client);
             writer.WriteLine(message);
             writer.Flush();
+            return true;
         }
         catch (Exception)
         {
+            return false;
         }
     }
 
