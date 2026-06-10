@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using HpFanControl.Core.Models;
 
-namespace HpFanControl.UI.Components;
+namespace HpFanControl.UI.Components.Shared;
 
 public partial class CurveEditor : ComponentBase, IAsyncDisposable
 {

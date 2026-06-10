@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using HpFanControl.UI.Models;
 
-namespace HpFanControl.UI.Components;
+namespace HpFanControl.UI.Components.Dashboard;
 
 public partial class ModeSelector : ComponentBase, IDisposable
 {

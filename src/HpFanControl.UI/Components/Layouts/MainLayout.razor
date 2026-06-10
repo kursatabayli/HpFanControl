@@ -1,0 +1,86 @@
+@using HpFanControl.UI.Services
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject WindowActionService WindowService
+
+<MudThemeProvider Theme="@_theme" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudSnackbarProvider />
+
+@if (WindowService.IsVisible)
+{
+    <MudLayout>
+        <AppBar />
+
+        <MudDivider Class="ma-8" />
+
+        <MudMainContent Class="pa-8">
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+
+    <div class="resize-corner nw" @onmousedown="() => StartResize(0)"></div>
+    <div class="resize-edge top" @onmousedown="() => StartResize(1)"></div>
+    <div class="resize-corner ne" @onmousedown="() => StartResize(2)"></div>
+    <div class="resize-edge left" @onmousedown="() => StartResize(3)"></div>
+    <div class="resize-edge right" @onmousedown="() => StartResize(4)"></div>
+    <div class="resize-corner sw" @onmousedown="() => StartResize(5)"></div>
+    <div class="resize-edge bottom" @onmousedown="() => StartResize(6)"></div>
+    <div class="resize-corner se" @onmousedown="() => StartResize(7)"></div>
+}
+
+@code {
+    private MudTheme _theme = new();
+    protected override void OnInitialized()
+    {
+        _theme = new()
+        {
+            PaletteDark = _darkPalette,
+            LayoutProperties = new LayoutProperties() { DefaultBorderRadius = "6px" }
+        };
+        WindowService.OnVisibilityChanged += HandleVisibilityChanged;
+    }
+
+    private void StartResize(int edge) => WindowService.TriggerResize(edge);
+    private void HandleVisibilityChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => WindowService.OnVisibilityChanged -= HandleVisibilityChanged;
+
+    private readonly PaletteDark _darkPalette = new()
+    {
+        Primary = "#3B82F6",
+        Secondary = "#8B5CF6",
+
+        Background = "#11111A",
+        Surface = "#1C1C26",
+        AppbarBackground = "#11111A",
+
+        AppbarText = "#F1F5F9",
+        TextPrimary = "#F1F5F9",
+        TextSecondary = "#94A3B8",
+        TextDisabled = "#475569",
+
+        DrawerBackground = "#16161F",
+        DrawerText = "#F1F5F9",
+        DrawerIcon = "#94A3B8",
+
+        ActionDefault = "#94A3B8",
+        ActionDisabled = "#334155",
+        ActionDisabledBackground = "#191924",
+        LinesDefault = "#2D2D3A",
+        TableLines = "#2D2D3A",
+        Divider = "#2D2D3A",
+
+        OverlayLight = "rgba(59, 130, 246, 0.05)",
+
+        Info = "#0EA5E9",
+        Success = "#10B981",
+        Warning = "#F59E0B",
+        Error = "#EF4444",
+
+        Black = "#050505",
+        White = "#FFFFFF"
+    };
+
+}
