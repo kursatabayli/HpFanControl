@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using HpFanControl.UI.Helpers;
 using HpFanControl.UI.Interop;
 using HpFanControl.UI.Services;

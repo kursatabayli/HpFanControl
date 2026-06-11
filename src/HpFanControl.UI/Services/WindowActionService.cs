@@ -1,4 +1,3 @@
-using System;
 using HpFanControl.UI.Helpers;
 using HpFanControl.UI.Interop;
 using InfiniFrame;

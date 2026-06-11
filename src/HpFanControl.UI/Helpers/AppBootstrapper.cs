@@ -1,4 +1,3 @@
-using System;
 using HpFanControl.Core.Models;
 using HpFanControl.Core.Services.Interfaces;
 using HpFanControl.UI.Services;

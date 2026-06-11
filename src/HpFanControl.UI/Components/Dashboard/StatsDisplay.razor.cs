@@ -3,7 +3,6 @@ using HpFanControl.Core.Models;
 using HpFanControl.Core.Services.Interfaces;
 using MudBlazor;
 using HpFanControl.UI.Models;
-using System;
 
 namespace HpFanControl.UI.Components.Dashboard;
 

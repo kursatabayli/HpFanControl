@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
 using HpFanControl.UI.Interop;
 using HpFanControl.Core.Models;
 using HpFanControl.Core.Services.Interfaces;
-using System.Threading.Tasks;
-using System.IO;
 
 namespace HpFanControl.UI.Services;
 

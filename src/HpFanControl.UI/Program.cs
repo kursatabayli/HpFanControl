@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using HpFanControl.UI.Components;
+﻿using HpFanControl.UI.Components;
 using HpFanControl.UI.Extensions;
 using HpFanControl.UI.Helpers;
 using InfiniFrame.BlazorWebView;

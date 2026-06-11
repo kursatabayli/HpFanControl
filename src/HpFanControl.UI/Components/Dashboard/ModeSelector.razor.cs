@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Components;
 using HpFanControl.Core.Models;
 using HpFanControl.Core.Services.Interfaces;
 using MudBlazor;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using HpFanControl.UI.Models;
 
 namespace HpFanControl.UI.Components.Dashboard;
