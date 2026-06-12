@@ -2,7 +2,8 @@ using System.Runtime.InteropServices;
 
 namespace HpFanControl.UI.Interop;
 
-public static partial class NativeMethods
+#pragma warning disable CA5392, CA1707, CA1401, CA1515
+internal static partial class NativeMethods
 {
     private const string AppIndicatorLib = "libayatana-appindicator3.so.1";
     private const string GtkLib = "libgtk-3.so.0";

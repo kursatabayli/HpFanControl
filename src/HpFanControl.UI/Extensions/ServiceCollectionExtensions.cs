@@ -9,7 +9,7 @@ using MudBlazor.Services;
 
 namespace HpFanControl.UI.Extensions;
 
-public static class ServiceCollectionExtensions
+internal static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
@@ -17,7 +17,7 @@ public static class ServiceCollectionExtensions
         {
             logging.ClearProviders();
             logging.AddConsole();
-            logging.SetMinimumLevel(LogLevel.Warning);
+            logging.SetMinimumLevel(LogLevel.Information);
         });
 
         services.AddSingleton<IHardwareService, HardwareService>();

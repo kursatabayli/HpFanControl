@@ -5,7 +5,8 @@ using HpFanControl.Core.Services.Interfaces;
 
 namespace HpFanControl.UI.Components.Dashboard;
 
-public partial class FanCurvePanel : ComponentBase, IDisposable
+#pragma warning disable CA1515
+public sealed partial class FanCurvePanel : ComponentBase, IDisposable
 {
     [Inject] public IFanControllerService FanService { get; set; } = default!;
     [Inject] public IConfigService ConfigService { get; set; } = default!;
@@ -56,7 +57,7 @@ public partial class FanCurvePanel : ComponentBase, IDisposable
     private void SaveChanges()
     {
         _draftConfig.ValidateAndSortCurves();
-        
+
         _draftConfig.LastMode = FanService.CurrentMode;
         ConfigService.Save(_draftConfig);
 
@@ -130,5 +131,7 @@ public partial class FanCurvePanel : ComponentBase, IDisposable
             FanService.StatsUpdated -= OnStatsUpdated;
             FanService.ModeChanged -= OnModeChanged;
         }
+
+        GC.SuppressFinalize(this);
     }
 }

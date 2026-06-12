@@ -6,9 +6,10 @@ using Microsoft.JSInterop;
 using HpFanControl.Core.Models;
 using MudBlazor;
 
+#pragma warning disable CA1515, CA2227, CA1002, CA2007, CA1716
 namespace HpFanControl.UI.Components.Shared;
 
-public partial class CurveEditor : ComponentBase, IAsyncDisposable
+public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
 {
   [Parameter] public List<FanCurvePoint> Points { get; set; } = [];
   [Parameter] public string Title { get; set; } = "Fan Curve";
@@ -23,7 +24,6 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
   private List<FanCurvePoint> _localPoints = [];
 
   private ElementReference _containerRef;
-  private ElementReference _svgRef;
   private DotNetObjectReference<CurveEditor>? _dotNetRef;
 
   private readonly string _guid = Guid.NewGuid().ToString("N");
@@ -32,10 +32,8 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
   private const double Height = 250;
   private const double PaddingX = 20;
 
-  private int? _draggingIndex = null;
-  private int? _hoverIndex = null;
-
-  private BoundingClientRect? _cachedSvgRect;
+  private int? _draggingIndex;
+  private int? _hoverIndex;
 
   private double StepX => _localPoints.Count > 1 ? (_width - 2 * PaddingX) / (_localPoints.Count - 1) : 0;
 
@@ -50,10 +48,10 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
 
       await JS.InvokeVoidAsync("curveEditor.addResizeListener", _containerRef, _dotNetRef);
 
-      var rect = await JS.InvokeAsync<BoundingClientRect>("curveEditor.getBoundingClientRect", _containerRef);
-      if (rect != null && rect.Width > 0)
+      double initialWidth = await JS.InvokeAsync<double>("curveEditor.getElementWidth", _containerRef);
+      if (initialWidth > 0)
       {
-        _width = rect.Width;
+        _width = initialWidth;
         StateHasChanged();
       }
     }
@@ -98,7 +96,6 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
     if (_draggingIndex.HasValue)
     {
       _draggingIndex = null;
-      _cachedSvgRect = null;
 
       await PointsChanged.InvokeAsync(_localPoints);
     }
@@ -205,46 +202,38 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
   }
 
   private async Task OpenAdvancedSettingsDialog()
-    {
-        var parameters = new DialogParameters<PointEditorDialog> { { x => x.Points, _localPoints } };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        
-        var dialog = await DialogService.ShowAsync<PointEditorDialog>($"{Title} Point Settings", parameters, options);
-        var result = await dialog.Result;
+  {
+    var parameters = new DialogParameters<PointEditorDialog> { { x => x.Points, _localPoints } };
+    var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
 
-        if (!result.Canceled && result.Data is List<FanCurvePoint> updatedPoints)
-        {
-            _localPoints = updatedPoints;
-            
-            await PointsChanged.InvokeAsync(_localPoints); 
-            
-            if (OnSaveRequested.HasDelegate)
-                await OnSaveRequested.InvokeAsync();
-        }
+    var dialog = await DialogService.ShowAsync<PointEditorDialog>($"{Title} Point Settings", parameters, options);
+    var result = await dialog.Result;
+
+    if (result is not null && !result.Canceled && result.Data is List<FanCurvePoint> updatedPoints)
+    {
+      _localPoints = updatedPoints;
+
+      await PointsChanged.InvokeAsync(_localPoints);
+
+      if (OnSaveRequested.HasDelegate)
+        await OnSaveRequested.InvokeAsync();
     }
+  }
 
   public async ValueTask DisposeAsync()
   {
-    if (_dotNetRef != null)
-    {
-      _dotNetRef.Dispose();
-      _dotNetRef = null;
-    }
+    _dotNetRef?.Dispose();
+    _dotNetRef = null;
 
     try
     {
       await JS.InvokeVoidAsync("curveEditor.removeResizeListener", _containerRef);
     }
-    catch
+    catch (JSDisconnectedException)
     {
     }
-  }
-
-  public class BoundingClientRect
-  {
-    public double Top { get; set; }
-    public double Left { get; set; }
-    public double Width { get; set; }
-    public double Height { get; set; }
+    catch (TaskCanceledException)
+    {
+    }
   }
 }

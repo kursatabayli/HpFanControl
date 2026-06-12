@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HpFanControl.UI.Extensions;
 
-public static class WindowExtensions
+internal static class WindowExtensions
 {
     public static void ConfigureAndRunWindow(this InfiniFrameBlazorAppBuilder appBuilder, bool startHidden)
     {

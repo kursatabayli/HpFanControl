@@ -11,11 +11,18 @@
         <DebugType>embedded</DebugType>
         <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-        <ApplicationIcon>wwwroot/favicon.ico</ApplicationIcon>
+        <ApplicationIcon>wwwroot/icons/favicon.ico</ApplicationIcon>
         <AssemblyName>hp-fan-control</AssemblyName>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
         <Version>2.2.0</Version>
         <FileVersion>2.2.0.0</FileVersion>
         <AssemblyVersion>2.2.0.0</AssemblyVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisLevel>latest-All</AnalysisLevel>
     </PropertyGroup>
 
     <ItemGroup>

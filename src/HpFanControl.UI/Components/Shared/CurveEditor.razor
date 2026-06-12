@@ -17,9 +17,9 @@
 
   <div @ref="_containerRef" class="relative w-100" style="@($"height: {Height}px; touch-action: none;")">
 
-    <svg @ref="_svgRef" width="@_width" height="@Height"
-         style="overflow: visible; z-index: 10; position: relative; cursor: pointer;" @onpointerdown="HandlePointerDown"
-         @onpointerup="HandlePointerUp" @onpointerleave="HandlePointerLeave" @onpointermove="HandlePointerMove">
+    <svg width="@_width" height="@Height" style="overflow: visible; z-index: 10; position: relative; cursor: pointer;"
+         @onpointerdown="HandlePointerDown" @onpointerup="HandlePointerUp" @onpointerleave="HandlePointerLeave"
+         @onpointermove="HandlePointerMove">
 
       <rect width="100%" height="100%" fill="transparent" />
 

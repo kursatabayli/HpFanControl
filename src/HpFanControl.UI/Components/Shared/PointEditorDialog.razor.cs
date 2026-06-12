@@ -5,7 +5,8 @@ using MudBlazor;
 
 namespace HpFanControl.UI.Components.Shared;
 
-public partial class PointEditorDialog : ComponentBase
+#pragma warning disable CA1515, CA2227, CA1002
+public sealed partial class PointEditorDialog : ComponentBase
 {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
