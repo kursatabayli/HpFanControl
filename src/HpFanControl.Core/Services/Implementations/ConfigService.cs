@@ -32,12 +32,18 @@ public class ConfigService : IConfigService
 
             var config = JsonSerializer.Deserialize(stream, AppJsonContext.Default.FanConfig);
 
-            return config ?? EnsureConfigFileCreated();
+            if (config != null)
+            {
+                config.ValidateAndSortCurves();
+                return config;
+            }
+
+            return EnsureConfigFileCreated();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load config file. Reverting to defaults.");
-            return FanConfig.Default;
+            return EnsureConfigFileCreated();
         }
     }
 

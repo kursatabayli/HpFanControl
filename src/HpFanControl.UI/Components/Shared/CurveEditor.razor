@@ -6,21 +6,20 @@
       <div
         style="@($"width: 4px; height: 24px; background-color: {Color}; border-radius: 4px; box-shadow: 0 0 8px {Color};")">
       </div>
-      <MudText Typo="Typo.subtitle2" Color="MudBlazor.Color.Primary" Class="fw-bold text-uppercase ls-1"
-               Style="letter-spacing: 1px;">
+      <MudText Typo="Typo.subtitle2" Color="MudBlazor.Color.Primary" Class="fw-bold text-uppercase ls-1">
         @Title
       </MudText>
+      <MudTooltip Text="Point Settings">
+        <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="Size.Small" OnClick="OpenAdvancedSettingsDialog" />
+      </MudTooltip>
     </MudStack>
   </MudStack>
 
   <div @ref="_containerRef" class="relative w-100" style="@($"height: {Height}px; touch-action: none;")">
 
     <svg @ref="_svgRef" width="@_width" height="@Height"
-         style="overflow: visible; z-index: 10; position: relative; cursor: pointer;"
-         @onpointerdown="HandlePointerDown"
-         @onpointerup="HandlePointerUp" 
-         @onpointerleave="HandlePointerLeave" 
-         @onpointermove="HandlePointerMove">
+         style="overflow: visible; z-index: 10; position: relative; cursor: pointer;" @onpointerdown="HandlePointerDown"
+         @onpointerup="HandlePointerUp" @onpointerleave="HandlePointerLeave" @onpointermove="HandlePointerMove">
 
       <rect width="100%" height="100%" fill="transparent" />
 
@@ -39,7 +38,7 @@
                 class="mud-text-disabled" stroke-opacity="@(i == 0 || i == _localPoints.Count - 1 ? "0.2" : "0.05")"
                 stroke-width="1" />
         }
-        
+
         @for (int i = 0; i <= 4; i++)
         {
           var y = i * (Height / 4.0);
@@ -57,7 +56,8 @@
           if (tempX >= 0 && tempX <= _width)
           {
             <line x1="@Invariant(tempX)" y1="0" x2="@Invariant(tempX)" y2="@Invariant(Height)" stroke="white"
-                  stroke-opacity="0.6" stroke-width="1" stroke-dasharray="4 4" style="transition: x1 0.5s ease, x2 0.5s ease;" />
+                  stroke-opacity="0.6" stroke-width="1" stroke-dasharray="4 4"
+                  style="transition: x1 0.5s ease, x2 0.5s ease;" />
           }
         }
       </g>
@@ -72,7 +72,7 @@
         var isDragging = _draggingIndex == index;
 
         <g style="pointer-events: none;">
-          
+
           <line x1="@Invariant(x)" y1="0" x2="@Invariant(x)" y2="@Invariant(Height)" stroke="@Color" stroke-width="1"
                 opacity="@(isHovered || isDragging ? 0.5 : 0)" style="transition: opacity 0.1s" />
 

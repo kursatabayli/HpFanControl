@@ -27,12 +27,12 @@
             Style="transition: all 0.3s ease;">
 
     <CurveEditor Title="CPU FAN" Color="#f43f5e" @bind-Points="@_draftConfig.CpuCurve"
-                 @bind-Points:after="OnCurveEdited" CurrentTemp="@CurrentCpuTemp" />
+                 @bind-Points:after="OnCurveEdited" CurrentTemp="@CurrentCpuTemp" OnSaveRequested="SaveChanges"/>
 
     <MudDivider />
 
     <CurveEditor Title="GPU FAN" Color="#00e5ff" @bind-Points="@_draftConfig.GpuCurve"
-                 @bind-Points:after="OnCurveEdited" CurrentTemp="@CurrentGpuTemp" />
+                 @bind-Points:after="OnCurveEdited" CurrentTemp="@CurrentGpuTemp" OnSaveRequested="SaveChanges"/>
   </MudStack>
 
   <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
