@@ -55,6 +55,8 @@ public partial class FanCurvePanel : ComponentBase, IDisposable
 
     private void SaveChanges()
     {
+        _draftConfig.ValidateAndSortCurves();
+        
         _draftConfig.LastMode = FanService.CurrentMode;
         ConfigService.Save(_draftConfig);
 

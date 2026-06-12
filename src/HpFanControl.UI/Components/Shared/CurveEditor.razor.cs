@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using HpFanControl.Core.Models;
+using MudBlazor;
 
 namespace HpFanControl.UI.Components.Shared;
 
@@ -14,8 +15,10 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
   [Parameter] public string Color { get; set; } = "#00e5ff";
   [Parameter] public int CurrentTemp { get; set; } = 0;
   [Parameter] public EventCallback<List<FanCurvePoint>> PointsChanged { get; set; }
+  [Parameter] public EventCallback OnSaveRequested { get; set; }
 
   [Inject] private IJSRuntime JS { get; set; } = default!;
+  [Inject] private IDialogService DialogService { get; set; } = default!;
 
   private List<FanCurvePoint> _localPoints = [];
 
@@ -200,6 +203,25 @@ public partial class CurveEditor : ComponentBase, IAsyncDisposable
 
     return sb.ToString();
   }
+
+  private async Task OpenAdvancedSettingsDialog()
+    {
+        var parameters = new DialogParameters<PointEditorDialog> { { x => x.Points, _localPoints } };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        
+        var dialog = await DialogService.ShowAsync<PointEditorDialog>($"{Title} Point Settings", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is List<FanCurvePoint> updatedPoints)
+        {
+            _localPoints = updatedPoints;
+            
+            await PointsChanged.InvokeAsync(_localPoints); 
+            
+            if (OnSaveRequested.HasDelegate)
+                await OnSaveRequested.InvokeAsync();
+        }
+    }
 
   public async ValueTask DisposeAsync()
   {

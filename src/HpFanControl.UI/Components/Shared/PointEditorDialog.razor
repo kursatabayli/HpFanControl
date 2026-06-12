@@ -1,0 +1,48 @@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+            You can only add or remove temperature points. Fan speeds can be adjusted by dragging the points on the main graph.
+        </MudText>
+
+        <MudStack Spacing="2" Class="mb-4">
+            <MudGrid Class="fw-bold px-2">
+                <MudItem xs="9">Temperature (°C)</MudItem>
+                <MudItem xs="3"></MudItem>
+            </MudGrid>
+
+            @foreach (var point in _editPoints)
+            {
+                bool isLocked = point.Temperature == 0 || point.Temperature == 100;
+                <MudGrid Class="px-2">
+                    <MudItem xs="9">
+                        <MudNumericField Value="point.Temperature" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" HideSpinButtons="true" />
+                    </MudItem>
+                    <MudItem xs="3" Class="d-flex justify-end">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" 
+                                       Size="Size.Small" Disabled="@isLocked" OnClick="@(() => RemovePoint(point))" />
+                    </MudItem>
+                </MudGrid>
+            }
+        </MudStack>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Add New Point</MudText>
+        <MudGrid>
+            <MudItem xs="6">
+                <MudNumericField @bind-Value="_newTemp" Min="1" Max="99" Placeholder="e.g. 60" 
+                                 Variant="Variant.Filled" Margin="Margin.Dense" HideSpinButtons="true" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudButton OnClick="AddNewPoint" Variant="Variant.Filled" Color="MudBlazor.Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Add" FullWidth="true">
+                    Add
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="MudBlazor.Color.Success" Variant="Variant.Filled" OnClick="Submit">Save and Apply</MudButton>
+    </DialogActions>
+</MudDialog>

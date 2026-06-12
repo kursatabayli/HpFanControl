@@ -1,14 +1,15 @@
 # HP Fan Control (Linux)
 
 ![Platform](https://img.shields.io/badge/platform-Linux-green.svg)
-![Version](https://img.shields.io/badge/version-v2.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v2.2.0-blue.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)
 
-A modern, highly optimized Linux desktop application and background daemon designed for **HP Victus** series laptops, allowing you to take full control of your thermal management.
+A modern, highly optimized Linux desktop application and background service designed for HP Victus series laptops, allowing you to take full control of your thermal management.
 
 <div align="center">
   <img src="docs/screenshot-main.png" alt="Main Interface">
-  <img src="docs/screenshot-tray.png" alt="Tray Menu">
+  <img src="docs/screenshot-point-settings.png" alt="Point Settings" width="45%">
+  <img src="docs/screenshot-tray.png" alt="Tray Menu" width="45%">
 </div>
 
 ---
@@ -26,23 +27,16 @@ Before installing this app, you **must** install the **HP WMI Driver** which exp
 
 ---
 
-## ✨ What's New in v2.0.0 (Major Update)
-
-- **System Tray Integration:** Runs silently in the background with a native tray menu.
-- **Global Keyboard Shortcuts (IPC):** Control fans and toggle the UI instantly via terminal commands without opening the window.
-- **Smart Installer:** The new installer automatically detects your distro, downloads required dependencies (`webkit2gtk`, `libayatana-appindicator`), configures `udev` rules, and assigns user groups.
-- **Modern Chromeless UI:** A fully custom, dark-themed borderless window with 8-way resizing and double-click to maximize support.
-- **Single Instance & Autostart:** Prevents multiple instances from running and can optionally start hidden on login.
-
----
-
 ## 🚀 Features
 
-- **Manual Curve Editor:** Create custom fan curves for CPU and GPU independently with an interactive graph.
+- **Dynamic Curve Editor (NEW):** Create custom fan curves for CPU and GPU independently. Add, remove, and manage temperature anchor points on the fly with smart auto-calculation and safety limits.
+- **System Tray Integration:** Runs silently in the background with a native tray menu.
+- **Global Keyboard Shortcuts (IPC):** Control fans and toggle the UI instantly via terminal commands without opening the window.
 - **Max Mode:** Instantly boosts fans to maximum RPM for peak cooling.
 - **Fail-Safe System:** Automatically reverts fans to "Auto" mode if the application crashes or closes.
 - **Persistence:** Remembers your last used mode and curves on startup.
 - **Live Monitoring:** Displays real-time CPU and GPU temperatures and Fan RPMs.
+- **Standalone Executable:** Runs natively as a single-file binary on Linux without requiring a pre-installed .NET runtime.
 
 ---
 

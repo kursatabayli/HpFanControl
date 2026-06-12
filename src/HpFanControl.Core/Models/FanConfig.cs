@@ -17,18 +17,41 @@ public class FanConfig
     {
         return
         [
-            new (45, 76),
-            new (50, 89),
-            new (55, 102),
-            new (60, 115),
-            new (65, 128),
-            new (70, 153),
-            new (75, 179),
-            new (80, 204),
-            new (85, 230),
-            new (90, 255),
-            new (95, 255)
+            new (0, 0),
+            new (25, 63),
+            new (50, 127),
+            new (75, 191),
+            new (100, 255)
 
         ];
+    }
+
+    public void ValidateAndSortCurves()
+    {
+        CpuCurve = SanitizeCurve(CpuCurve);
+        GpuCurve = SanitizeCurve(GpuCurve);
+    }
+
+    private static List<FanCurvePoint> SanitizeCurve(List<FanCurvePoint> curve)
+    {
+        curve ??= [];
+
+        var clamped = curve.Select(p => new FanCurvePoint(
+            Math.Clamp(p.Temperature, 0, 100),
+            Math.Clamp(p.Speed, 0, 255)
+        ));
+
+        var distinctPoints = clamped
+            .GroupBy(p => p.Temperature)
+            .ToDictionary(g => g.Key, g => g.Last().Speed);
+
+        if (!distinctPoints.ContainsKey(0))
+            distinctPoints[0] = 63;
+        if (!distinctPoints.ContainsKey(100))
+            distinctPoints[100] = 255;
+
+        return [.. distinctPoints
+            .Select(kvp => new FanCurvePoint(kvp.Key, kvp.Value))
+            .OrderBy(p => p.Temperature)];
     }
 }
