@@ -13,9 +13,9 @@
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <ApplicationIcon>wwwroot/favicon.ico</ApplicationIcon>
         <AssemblyName>hp-fan-control</AssemblyName>
-        <Version>2.1.0</Version>
-        <FileVersion>2.1.0.0</FileVersion>
-        <AssemblyVersion>2.1.0.0</AssemblyVersion>
+        <Version>2.2.0</Version>
+        <FileVersion>2.2.0.0</FileVersion>
+        <AssemblyVersion>2.2.0.0</AssemblyVersion>
     </PropertyGroup>
 
     <ItemGroup>
