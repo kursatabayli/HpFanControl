@@ -3,10 +3,10 @@ using HpFanControl.UI.Interop;
 
 namespace HpFanControl.UI.Helpers;
 
-public static class GtkWindowHelper
+internal static class GtkWindowHelper
 {
     private static IntPtr _cachedWindowPointer = IntPtr.Zero;
-    public static IntPtr GetMainWindowPointer(string windowTitle)
+    public static IntPtr GetMainWindowPointer(string? windowTitle)
     {
         if (_cachedWindowPointer != IntPtr.Zero)
             return _cachedWindowPointer;
@@ -24,7 +24,7 @@ public static class GtkWindowHelper
 
             if (titlePtr != IntPtr.Zero)
             {
-                string title = Marshal.PtrToStringUTF8(titlePtr);
+                string? title = Marshal.PtrToStringUTF8(titlePtr);
                 if (title == windowTitle)
                 {
                     targetWindow = widget;

@@ -5,7 +5,7 @@ using InfiniFrame.BlazorWebView;
 
 namespace HpFanControl.UI;
 
-class Program
+internal sealed class Program
 {
     [STAThread]
     static void Main(string[] args)

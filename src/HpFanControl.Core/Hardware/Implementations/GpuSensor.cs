@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HpFanControl.Core.Hardware.Implementations;
 
-public class GpuSensor : IGpuSensor
+public sealed partial class GpuSensor : IGpuSensor
 {
     private readonly ILogger<GpuSensor> _logger;
     private readonly IGpuProvider _nvidiaProvider;
@@ -28,18 +28,34 @@ public class GpuSensor : IGpuSensor
         {
             _nvidiaProvider.Initialize();
         }
-        catch (Exception ex)
+        catch (DllNotFoundException ex)
         {
-            _logger.LogError(ex, "Failed to initialize Nvidia Provider");
+            LogNvidiaInitError(ex);
+        }
+        catch (NotSupportedException ex)
+        {
+            LogNvidiaInitError(ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogNvidiaInitError(ex);
         }
 
         try
         {
             _integratedProvider.Initialize();
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "Failed to initialize Integrated Provider");
+            LogIntegratedInitError(ex);
+        }
+        catch (IOException ex)
+        {
+            LogIntegratedInitError(ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogIntegratedInitError(ex);
         }
     }
 
@@ -53,4 +69,10 @@ public class GpuSensor : IGpuSensor
 
         return _integratedProvider.GetTemperature();
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "Failed to initialize Nvidia Provider")]
+    private partial void LogNvidiaInitError(Exception ex);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Error, Message = "Failed to initialize Integrated Provider")]
+    private partial void LogIntegratedInitError(Exception ex);
 }

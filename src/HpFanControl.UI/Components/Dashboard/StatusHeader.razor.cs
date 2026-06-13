@@ -5,7 +5,8 @@ using MudBlazor;
 
 namespace HpFanControl.UI.Components.Dashboard;
 
-public partial class StatusHeader : ComponentBase, IDisposable
+#pragma warning disable CA1515
+public sealed partial class StatusHeader : ComponentBase, IDisposable
 {
   [Inject] public IFanControllerService FanService { get; set; } = default!;
   private string _currentModeName = "System Loading...";
@@ -52,5 +53,7 @@ public partial class StatusHeader : ComponentBase, IDisposable
   public void Dispose()
   {
     FanService?.ModeChanged -= OnModeChanged;
+    GC.SuppressFinalize(this);
   }
 }
+#pragma warning restore CA1515

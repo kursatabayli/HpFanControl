@@ -1,15 +1,21 @@
 # HP Fan Control (Linux)
 
 ![Platform](https://img.shields.io/badge/platform-Linux-green.svg)
-![Version](https://img.shields.io/badge/version-v2.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v2.2.1-blue.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)
 
 A modern, highly optimized Linux desktop application and background service designed for HP Victus series laptops, allowing you to take full control of your thermal management.
 
 <div align="center">
-  <img src="docs/screenshot-main.png" alt="Main Interface">
-  <img src="docs/screenshot-point-settings.png" alt="Point Settings" width="45%">
-  <img src="docs/screenshot-tray.png" alt="Tray Menu" width="45%">
+  <img src="docs/screenshot-main.png" alt="Main Interface" width="100%">
+  <br><br>
+  
+  <table>
+    <tr>
+      <td align="center"><b>Point Settings</b><br><img src="docs/screenshot-point-settings.png" height="300"></td>
+      <td align="center"><b>Tray Menu</b><br><img src="docs/screenshot-tray.png" height="300"></td>
+    </tr>
+  </table>
 </div>
 
 ---
@@ -27,7 +33,7 @@ Before installing this app, you **must** install the **HP WMI Driver** which exp
 
 ---
 
-## 🚀 Features
+## Features
 
 - **Dynamic Curve Editor (NEW):** Create custom fan curves for CPU and GPU independently. Add, remove, and manage temperature anchor points on the fly with smart auto-calculation and safety limits.
 - **System Tray Integration:** Runs silently in the background with a native tray menu.
@@ -36,11 +42,10 @@ Before installing this app, you **must** install the **HP WMI Driver** which exp
 - **Fail-Safe System:** Automatically reverts fans to "Auto" mode if the application crashes or closes.
 - **Persistence:** Remembers your last used mode and curves on startup.
 - **Live Monitoring:** Displays real-time CPU and GPU temperatures and Fan RPMs.
-- **Standalone Executable:** Runs natively as a single-file binary on Linux without requiring a pre-installed .NET runtime.
 
 ---
 
-## 🛠️ Installation
+## Installation
 
 1. Download the latest release from the **[Releases Page](https://github.com/kursatabayli/hp-fan-control/releases)**.
 2. Extract the archive and open a terminal in that folder.
@@ -61,7 +66,7 @@ sudo ./install.sh
 
 ---
 
-## ⌨️ Keyboard Shortcuts (Custom IPC Commands)
+## Keyboard Shortcuts (Custom IPC Commands)
 
 You can assign custom global keyboard shortcuts in your Desktop Environment settings (e.g., GNOME Settings -> Keyboard -> Custom Shortcuts) using these built-in CLI commands:
 
@@ -77,7 +82,7 @@ hp-fan-control --toggle-mode
 
 ---
 
-## 🧪 Test Environment
+## Test Environment
 
 This software has been developed and verified on the following hardware and software configuration:
 
@@ -89,7 +94,7 @@ This software has been developed and verified on the following hardware and soft
 
 ---
 
-## 🖥️ Compatibility
+## Compatibility
 
 | Hardware | Status | Notes |
 | :--- | :--- | :--- |

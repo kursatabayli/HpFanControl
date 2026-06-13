@@ -4,15 +4,16 @@ using InfiniFrame;
 
 namespace HpFanControl.UI.Services;
 
-public class WindowActionService
+#pragma warning disable CA1812
+internal sealed class WindowActionService
 {
-    private IInfiniFrameWindow _window;
+    private readonly IInfiniFrameWindow _window;
 
     public bool IsVisible { get; private set; } = true;
     public bool IsMaximized { get; private set; } = true;
-    public event Action OnVisibilityChanged;
+    public event Action? OnVisibilityChanged;
 
-    public void Initialize(IInfiniFrameWindow window)
+    public WindowActionService(IInfiniFrameWindow window)
     {
         _window = window;
     }
@@ -22,7 +23,7 @@ public class WindowActionService
         if (!IsVisible) return;
         IsVisible = false;
 
-        _window?.Invoke(() =>
+        _window.Invoke(() =>
         {
             IntPtr gtkWindow = GtkWindowHelper.GetMainWindowPointer(_window.Title);
             if (gtkWindow != IntPtr.Zero)
@@ -37,7 +38,7 @@ public class WindowActionService
         if (IsVisible) return;
         IsVisible = true;
 
-        _window?.Invoke(() =>
+        _window.Invoke(() =>
         {
             IntPtr gtkWindow = GtkWindowHelper.GetMainWindowPointer(_window.Title);
             if (gtkWindow != IntPtr.Zero)
@@ -49,18 +50,18 @@ public class WindowActionService
 
     public void TriggerMinimize()
     {
-        _window?.Invoke(() => _window.SetMinimized(true));
+        _window.Invoke(() => _window.SetMinimized(true));
     }
 
     public void TriggerMaximize()
     {
         IsMaximized = !IsMaximized;
-        _window?.Invoke(() => _window.SetMaximized(IsMaximized));
+        _window.Invoke(() => _window.SetMaximized(IsMaximized));
     }
 
     public void TriggerResize(int edge)
     {
-        _window?.Invoke(() =>
+        _window.Invoke(() =>
         {
             IntPtr gtkWindow = GtkWindowHelper.GetMainWindowPointer(_window.Title);
             if (gtkWindow != IntPtr.Zero)
@@ -70,7 +71,7 @@ public class WindowActionService
 
     public void TriggerDragMove()
     {
-        _window?.Invoke(() =>
+        _window.Invoke(() =>
         {
             IntPtr gtkWindow = GtkWindowHelper.GetMainWindowPointer(_window.Title);
             if (gtkWindow != IntPtr.Zero)
@@ -84,3 +85,4 @@ public class WindowActionService
         else TriggerShow();
     }
 }
+#pragma warning restore CA1812

@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <base href="/" />
+    <link rel="icon" type="image/x-icon" href="icons/favicon.ico" />
     <link href="app.css" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link href="_content/MudBlazor.FontIcons.MaterialIcons/css/font.min.css" rel="stylesheet" />
@@ -16,10 +17,9 @@
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script>
         window.curveEditor = {
-            getBoundingClientRect: (element) => {
-                if (!element) return null;
-                const rect = element.getBoundingClientRect();
-                return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+            getElementWidth: (element) => {
+                if (!element) return 0;
+                return element.getBoundingClientRect().width;
             },
             addResizeListener: (element, dotNetRef) => {
                 if (!element) return;

@@ -6,7 +6,7 @@ using HpFanControl.Core.Services.Interfaces;
 
 namespace HpFanControl.Core.Services.Implementations;
 
-public class ConfigService : IConfigService
+public sealed partial class ConfigService : IConfigService
 {
     private readonly ILogger<ConfigService> _logger;
     private readonly string _configFolder;
@@ -40,9 +40,19 @@ public class ConfigService : IConfigService
 
             return EnsureConfigFileCreated();
         }
-        catch (Exception ex)
+        catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to load config file. Reverting to defaults.");
+            LogLoadError(ex);
+            return EnsureConfigFileCreated();
+        }
+        catch (IOException ex)
+        {
+            LogLoadError(ex);
+            return EnsureConfigFileCreated();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogLoadError(ex);
             return EnsureConfigFileCreated();
         }
     }
@@ -64,11 +74,19 @@ public class ConfigService : IConfigService
 
             File.Move(tmpPath, _configPath, overwrite: true);
 
-            _logger.LogInformation("Configuration saved successfully.");
+            LogSaveSuccess();
         }
-        catch (Exception ex)
+        catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to save config file.");
+            LogSaveError(ex);
+        }
+        catch (IOException ex)
+        {
+            LogSaveError(ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogSaveError(ex);
         }
     }
 
@@ -83,12 +101,29 @@ public class ConfigService : IConfigService
             Save(defaultConfig);
             return defaultConfig;
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            _logger.LogError(ex, "Critical error: Could not create config directory/file.");
+            LogCriticalCreateError(ex);
+            return FanConfig.Default;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogCriticalCreateError(ex);
             return FanConfig.Default;
         }
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "Failed to load config file. Reverting to defaults.")]
+    private partial void LogLoadError(Exception ex);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information, Message = "Configuration saved successfully.")]
+    private partial void LogSaveSuccess();
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Error, Message = "Failed to save config file.")]
+    private partial void LogSaveError(Exception ex);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Error, Message = "Critical error: Could not create config directory/file.")]
+    private partial void LogCriticalCreateError(Exception ex);
 }
 
 [JsonSerializable(typeof(FanConfig))]
@@ -97,6 +132,6 @@ public class ConfigService : IConfigService
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     UseStringEnumConverter = true
 )]
-internal partial class AppJsonContext : JsonSerializerContext
+internal sealed partial class AppJsonContext : JsonSerializerContext
 {
 }

@@ -1,13 +1,12 @@
 using Microsoft.Extensions.Logging;
 using HpFanControl.Core.Hardware.Interfaces;
 using HpFanControl.Core.Helpers;
+using System.Text;
 
 namespace HpFanControl.Core.Hardware.Implementations;
 
-public class CpuSensor : ICpuSensor
+public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
 {
-    private readonly ILogger<CpuSensor> _logger;
-
     private static readonly byte[][] PriorityDrivers =
     [
         "k10temp"u8.ToArray(),
@@ -19,11 +18,6 @@ public class CpuSensor : ICpuSensor
     private FileStream? _stream;
 
     private readonly byte[] _tempBuffer = new byte[16];
-
-    public CpuSensor(ILogger<CpuSensor> logger)
-    {
-        _logger = logger;
-    }
 
     public int ReadTemperature()
     {
@@ -41,7 +35,7 @@ public class CpuSensor : ICpuSensor
         var baseDir = "/sys/class/hwmon";
         if (!Directory.Exists(baseDir))
         {
-            _logger.LogWarning("Hwmon directory not found.");
+            LogHwmonNotFound();
             return;
         }
 
@@ -73,8 +67,11 @@ public class CpuSensor : ICpuSensor
                         if (File.Exists(potentialPath))
                         {
                             _detectedPath = potentialPath;
-                            _logger.LogInformation("CPU Sensor detected: {Driver} at {Path}",
-                                System.Text.Encoding.UTF8.GetString(targetDriver), _detectedPath);
+                            if (logger.IsEnabled(LogLevel.Information))
+                            {
+                                var driverStr = Encoding.UTF8.GetString(targetDriver);
+                                LogSensorDetected(driverStr, _detectedPath);
+                            }
 
                             _stream?.Dispose();
                             _stream = null;
@@ -85,11 +82,15 @@ public class CpuSensor : ICpuSensor
                 }
             }
 
-            _logger.LogWarning("No compatible CPU thermal sensor found.");
+            LogNoSensorFound();
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "Error while scanning for CPU sensor.");
+            LogSensorError(ex);
+        }
+        catch (IOException ex)
+        {
+            LogSensorError(ex);
         }
     }
 
@@ -97,5 +98,19 @@ public class CpuSensor : ICpuSensor
     {
         _stream?.Dispose();
         _stream = null;
+
+        GC.SuppressFinalize(this);
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Warning, Message = "Hwmon directory not found.")]
+    private partial void LogHwmonNotFound();
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information, Message = "CPU Sensor detected: {Driver} at {Path}")]
+    private partial void LogSensorDetected(string driver, string path);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Warning, Message = "No compatible CPU thermal sensor found.")]
+    private partial void LogNoSensorFound();
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Error, Message = "Error while scanning for CPU sensor.")]
+    private partial void LogSensorError(Exception ex);
 }
