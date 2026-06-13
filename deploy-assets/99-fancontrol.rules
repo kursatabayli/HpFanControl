@@ -1,0 +1,1 @@
+ACTION=="add|change", SUBSYSTEM=="hwmon", KERNEL=="hwmon*", RUN+="/bin/sh -c 'chgrp -f fancontrol /sys/class/hwmon/%k/pwm* /sys/class/hwmon/%k/pwm*_enable 2>/dev/null; chmod -f 664 /sys/class/hwmon/%k/pwm* /sys/class/hwmon/%k/pwm*_enable 2>/dev/null || true'"
