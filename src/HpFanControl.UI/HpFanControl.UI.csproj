@@ -14,9 +14,9 @@
         <ApplicationIcon>wwwroot/icons/favicon.ico</ApplicationIcon>
         <AssemblyName>hp-fan-control</AssemblyName>
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-        <Version>2.2.0</Version>
-        <FileVersion>2.2.0.0</FileVersion>
-        <AssemblyVersion>2.2.0.0</AssemblyVersion>
+        <Version>2.2.2</Version>
+        <FileVersion>2.2.2.0</FileVersion>
+        <AssemblyVersion>2.2.2.0</AssemblyVersion>
     </PropertyGroup>
 
     <PropertyGroup>
