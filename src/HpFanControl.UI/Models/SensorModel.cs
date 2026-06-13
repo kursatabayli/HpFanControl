@@ -1,6 +1,6 @@
 namespace HpFanControl.UI.Models;
 
-public class SensorModel
+internal sealed class SensorModel
 {
   public string Label { get; set; } = string.Empty;
   public string Icon { get; set; } = string.Empty;

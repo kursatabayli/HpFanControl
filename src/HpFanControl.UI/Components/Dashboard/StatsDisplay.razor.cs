@@ -6,7 +6,8 @@ using HpFanControl.UI.Models;
 
 namespace HpFanControl.UI.Components.Dashboard;
 
-public partial class StatsDisplay : ComponentBase, IDisposable
+#pragma warning disable CA1515
+public sealed partial class StatsDisplay : ComponentBase, IDisposable
 {
   [Inject] public IFanControllerService FanService { get; set; } = default!;
   private readonly SensorModel[] _sensors = new SensorModel[2];
@@ -67,9 +68,8 @@ public partial class StatsDisplay : ComponentBase, IDisposable
 
   public void Dispose()
   {
-    if (FanService != null)
-    {
-      FanService.StatsUpdated -= OnStatsUpdated;
-    }
+    FanService?.StatsUpdated -= OnStatsUpdated;
+    GC.SuppressFinalize(this);
   }
 }
+#pragma warning restore CA1515

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HpFanControl.Core.Helpers;
 
-public static class SysFs
+public sealed partial class SysFs
 {
     public static ILogger? Logger { get; set; }
 
@@ -20,7 +20,7 @@ public static class SysFs
         return 0;
     }
 
-    public static int ReadInt(ref FileStream? stream, string path, byte[] buffer)
+    public static int ReadInt(ref FileStream? stream, string path, Span<byte> buffer)
     {
         try
         {
@@ -30,16 +30,21 @@ public static class SysFs
 
             stream.Seek(0, SeekOrigin.Begin);
 
-            int bytesRead = stream.Read(buffer, 0, buffer.Length);
+            int bytesRead = stream.Read(buffer);
 
             if (bytesRead > 0)
             {
-                return ParseInt(buffer.AsSpan(0, bytesRead));
+                return ParseInt(buffer[..bytesRead]);
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            Logger?.LogError(ex, "Failed to read integer from {Path}", path);
+            if (Logger != null) LogReadError(Logger, ex, path);
+            ResetStream(ref stream);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            if (Logger != null) LogReadError(Logger, ex, path);
             ResetStream(ref stream);
         }
         return 0;
@@ -58,14 +63,19 @@ public static class SysFs
             stream.Write(data);
             stream.Flush();
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            Logger?.LogError(ex, "Failed to write bytes to {Path}", path);
+            if (Logger != null) LogWriteError(Logger, ex, path);
+            ResetStream(ref stream);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            if (Logger != null) LogWriteError(Logger, ex, path);
             ResetStream(ref stream);
         }
     }
 
-    public static bool CheckContentEquals(ref FileStream? stream, string path, ReadOnlySpan<byte> expected, byte[] buffer)
+    public static bool CheckContentEquals(ref FileStream? stream, string path, ReadOnlySpan<byte> expected, Span<byte> buffer)
     {
         try
         {
@@ -74,23 +84,29 @@ public static class SysFs
             if (stream == null) return false;
 
             stream.Seek(0, SeekOrigin.Begin);
-            int bytesRead = stream.Read(buffer, 0, buffer.Length);
+            int bytesRead = stream.Read(buffer);
 
             if (bytesRead < expected.Length) return false;
 
-            var fileContent = buffer.AsSpan(0, bytesRead);
+            var fileContent = buffer[..bytesRead];
 
             return fileContent.IndexOf(expected) >= 0;
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            Logger?.LogError(ex, "Failed to check content of {Path}", path);
+            if (Logger != null) LogCheckContentError(Logger, ex, path);
+            ResetStream(ref stream);
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            if (Logger != null) LogCheckContentError(Logger, ex, path);
             ResetStream(ref stream);
             return false;
         }
     }
 
-    public static bool CheckContentEquals(ref FileStream? stream, string path, string expected, byte[] buffer)
+    public static bool CheckContentEquals(ref FileStream? stream, string path, string expected, Span<byte> buffer)
     {
         Span<byte> expectedBytes = stackalloc byte[Encoding.ASCII.GetByteCount(expected)];
         Encoding.ASCII.GetBytes(expected, expectedBytes);
@@ -106,7 +122,7 @@ public static class SysFs
 
         if (!File.Exists(path))
         {
-            Logger?.LogWarning("File not found: {Path}", path);
+            if (Logger != null) LogFileNotFound(Logger, path);
             return;
         }
 
@@ -119,7 +135,8 @@ public static class SysFs
         {
             stream?.Dispose();
         }
-        catch { }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
         stream = null;
     }
 
@@ -137,7 +154,7 @@ public static class SysFs
             end--;
         }
 
-        if (start > end) return ReadOnlySpan<byte>.Empty;
+        if (start > end) return [];
 
         return span.Slice(start, end - start + 1);
     }
@@ -146,6 +163,22 @@ public static class SysFs
     {
         return b == 32 || b == 9 || b == 10 || b == 13;
     }
+
+    #endregion
+
+    #region Logging
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "Failed to read integer from {Path}")]
+    private static partial void LogReadError(ILogger logger, Exception ex, string path);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Error, Message = "Failed to write bytes to {Path}")]
+    private static partial void LogWriteError(ILogger logger, Exception ex, string path);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Error, Message = "Failed to check content of {Path}")]
+    private static partial void LogCheckContentError(ILogger logger, Exception ex, string path);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Warning, Message = "File not found: {Path}")]
+    private static partial void LogFileNotFound(ILogger logger, string path);
 
     #endregion
 }

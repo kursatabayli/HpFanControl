@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HpFanControl.UI.Helpers;
 
-public static class AppStartupHelper
+internal static partial class AppStartupHelper
 {
     public static bool ShouldStartNewInstance(string[] args)
     {
@@ -42,11 +42,14 @@ public static class AppStartupHelper
         {
             var ex = error.ExceptionObject as Exception;
             var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-            logger.LogCritical(ex, "Fatal application crash detected!");
+            LogFatalCrash(logger, ex);
             mainWindow.Invoke(() =>
             {
                 mainWindow.ShowMessage("Fatal Error", ex?.Message ?? "Unknown error");
             });
         };
     }
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Critical, Message = "Fatal application crash detected!")]
+    private static partial void LogFatalCrash(ILogger logger, Exception? ex);
 }

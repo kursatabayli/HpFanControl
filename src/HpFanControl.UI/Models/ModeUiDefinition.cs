@@ -3,4 +3,4 @@ using MudBlazor;
 
 namespace HpFanControl.UI.Models;
 
-public record ModeUiDefinition(FanMode Id, string Label, string Icon, Color ThemeColor);
+internal sealed record ModeUiDefinition(FanMode Id, string Label, string Icon, Color ThemeColor);

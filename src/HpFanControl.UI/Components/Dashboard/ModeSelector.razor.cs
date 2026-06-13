@@ -6,7 +6,8 @@ using HpFanControl.UI.Models;
 
 namespace HpFanControl.UI.Components.Dashboard;
 
-public partial class ModeSelector : ComponentBase, IDisposable
+#pragma warning disable CA1515
+public sealed partial class ModeSelector : ComponentBase, IDisposable
 {
   [Inject] public IFanControllerService FanService { get; set; } = default!;
 
@@ -43,9 +44,8 @@ public partial class ModeSelector : ComponentBase, IDisposable
 
   public void Dispose()
   {
-    if (FanService != null)
-    {
-      FanService.ModeChanged -= OnModeChangedFromService;
-    }
+    FanService?.ModeChanged -= OnModeChangedFromService;
+    GC.SuppressFinalize(this);
   }
 }
+#pragma warning restore CA1515

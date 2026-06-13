@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HpFanControl.UI.Helpers;
 
-public static class AppBootstrapper
+internal static partial class AppBootstrapper
 {
     private static LinuxTrayService? _trayService;
     public static void InitializeServices(IServiceProvider serviceProvider, IInfiniFrameWindow mainWindow)
@@ -16,7 +16,7 @@ public static class AppBootstrapper
 
         try
         {
-            logger.LogInformation("Application bootstrapping...");
+            LogBootstrapping(logger);
 
             var configService = serviceProvider.GetRequiredService<IConfigService>();
             var config = configService.Load();
@@ -26,12 +26,11 @@ public static class AppBootstrapper
             fanController.Start();
 
             var windowAction = serviceProvider.GetRequiredService<WindowActionService>();
-            windowAction.Initialize(mainWindow);
 
             _trayService = new LinuxTrayService(
                 fanController,
                 windowAction,
-                invokeOnUI: action => mainWindow.Invoke(action),
+                invokeOnUI: mainWindow.Invoke,
                 onExitRequested: () =>
                 {
                     fanController.Stop();
@@ -42,7 +41,7 @@ public static class AppBootstrapper
             IpcManager.StartServer(message =>
             {
                 if (message == "PING") return;
-                
+
                 if (message == "TOGGLE_UI")
                 {
                     windowAction.ToggleVisibility();
@@ -65,7 +64,14 @@ public static class AppBootstrapper
         }
         catch (Exception ex)
         {
-            logger.LogCritical(ex, "Failed to initialize services.");
+            LogBootstrapCritical(logger, ex);
+            throw;
         }
     }
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Information, Message = "Application bootstrapping...")]
+    private static partial void LogBootstrapping(ILogger logger);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Critical, Message = "Failed to initialize services.")]
+    private static partial void LogBootstrapCritical(ILogger logger, Exception ex);
 }

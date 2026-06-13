@@ -2,14 +2,12 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using HpFanControl.Core.Hardware.Interfaces;
 using HpFanControl.Core.Helpers;
+using HpFanControl.Core.Interop;
 
 namespace HpFanControl.Core.Hardware.Implementations;
 
-public partial class NvidiaGpuProvider : IGpuProvider
+public sealed partial class NvidiaGpuProvider(ILogger<NvidiaGpuProvider> logger) : IGpuProvider
 {
-  private readonly ILogger<NvidiaGpuProvider> _logger;
-
-  private const string LibName = "libnvidia-ml.so.1";
   private static readonly byte[] StatusActive = "active"u8.ToArray();
   private static readonly byte[] VendorNvidia = "0x10de"u8.ToArray();
 
@@ -32,11 +30,6 @@ public partial class NvidiaGpuProvider : IGpuProvider
     }
   }
 
-  public NvidiaGpuProvider(ILogger<NvidiaGpuProvider> logger)
-  {
-    _logger = logger;
-  }
-
   public void Initialize()
   {
     if (_statusPath != null) return;
@@ -53,10 +46,15 @@ public partial class NvidiaGpuProvider : IGpuProvider
         if (SysFs.CheckContentEquals(ref fs, vPath, VendorNvidia, _buffer))
         {
           _statusPath = Path.Combine(dir, "power/runtime_status");
-          _logger.LogInformation("Nvidia Hardware found. PM Path: {Path}", _statusPath);
+
+          if (logger.IsEnabled(LogLevel.Information))
+             LogHardwareFound(_statusPath);
+
           break;
         }
       }
+      catch (UnauthorizedAccessException) { }
+      catch (IOException) { }
       finally { fs?.Dispose(); }
     }
   }
@@ -81,11 +79,11 @@ public partial class NvidiaGpuProvider : IGpuProvider
         {
           _isNvmlAvailable = true;
           NvmlNative.nvmlDeviceGetHandleByIndex(0, out _nvmlDeviceHandle);
-          _logger.LogInformation("NVML Library Initialized.");
+          LogNvmlInitSuccess();
         }
         else
         {
-          _logger.LogWarning("NVML Init failed. Code: {Code}", initResult);
+          LogNvmlInitFailed(initResult);
           _isNvmlAvailable = false;
           return 0;
         }
@@ -99,12 +97,16 @@ public partial class NvidiaGpuProvider : IGpuProvider
     }
     catch (DllNotFoundException)
     {
-      _logger.LogWarning("Nvidia drivers not installed (libnvidia-ml.so.1 missing).");
+      LogNvmlMissing();
       _isNvmlAvailable = false;
     }
-    catch (Exception ex)
+    catch (EntryPointNotFoundException ex)
     {
-      _logger.LogDebug(ex, "Failed to read Nvidia temp.");
+      LogReadTempFailed(ex);
+    }
+    catch (ExternalException ex)
+    {
+      LogReadTempFailed(ex);
     }
 
     return 0;
@@ -116,15 +118,27 @@ public partial class NvidiaGpuProvider : IGpuProvider
 
     if (_isNvmlAvailable == true)
     {
-      try { NvmlNative.nvmlShutdown(); } catch { }
+      try 
+      { 
+          _ = NvmlNative.nvmlShutdown(); 
+      } 
+      catch (DllNotFoundException) { }
+      catch (EntryPointNotFoundException) { }
     }
   }
 
-  private static partial class NvmlNative
-  {
-    [LibraryImport(LibName)] public static partial int nvmlInit();
-    [LibraryImport(LibName)] public static partial int nvmlShutdown();
-    [LibraryImport(LibName)] public static partial int nvmlDeviceGetHandleByIndex(uint index, out IntPtr device);
-    [LibraryImport(LibName)] public static partial int nvmlDeviceGetTemperature(IntPtr device, int sensorType, ref uint temp);
-  }
+  [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Nvidia Hardware found. PM Path: {Path}")]
+  private partial void LogHardwareFound(string path);
+
+  [LoggerMessage(EventId = 2, Level = LogLevel.Information, Message = "NVML Library Initialized.")]
+  private partial void LogNvmlInitSuccess();
+
+  [LoggerMessage(EventId = 3, Level = LogLevel.Warning, Message = "NVML Init failed. Code: {Code}")]
+  private partial void LogNvmlInitFailed(int code);
+
+  [LoggerMessage(EventId = 4, Level = LogLevel.Warning, Message = "Nvidia drivers not installed (libnvidia-ml.so.1 missing).")]
+  private partial void LogNvmlMissing();
+
+  [LoggerMessage(EventId = 5, Level = LogLevel.Debug, Message = "Failed to read Nvidia temp.")]
+  private partial void LogReadTempFailed(Exception ex);
 }

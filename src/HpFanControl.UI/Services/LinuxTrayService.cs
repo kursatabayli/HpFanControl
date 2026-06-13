@@ -4,9 +4,9 @@ using HpFanControl.Core.Services.Interfaces;
 
 namespace HpFanControl.UI.Services;
 
-public class LinuxTrayService
+internal sealed class LinuxTrayService
 {
-    private bool _isUpdatingUi = false;
+    private bool _isUpdatingUi;
     private IntPtr _indicator;
     private IntPtr _menu;
     private IntPtr _menuItemAuto;
@@ -20,9 +20,9 @@ public class LinuxTrayService
     private readonly Action<Action> _invokeOnUI;
     private readonly Action _onExitRequested;
 
-    private readonly string _iconAuto = Path.Combine(AppContext.BaseDirectory, "wwwroot", "fan-auto.svg");
-    private readonly string _iconManual = Path.Combine(AppContext.BaseDirectory, "wwwroot", "fan-manual.svg");
-    private readonly string _iconMax = Path.Combine(AppContext.BaseDirectory, "wwwroot", "fan-max.svg");
+    private readonly string _iconAuto = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", "fan-auto.svg");
+    private readonly string _iconManual = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", "fan-manual.svg");
+    private readonly string _iconMax = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", "fan-max.svg");
 
     public LinuxTrayService(IFanControllerService fanService, WindowActionService windowService, Action<Action> invokeOnUI, Action onExitRequested)
     {
