@@ -35,8 +35,6 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
   private int? _draggingIndex;
   private int? _hoverIndex;
 
-  private double StepX => _localPoints.Count > 1 ? (_width - 2 * PaddingX) / (_localPoints.Count - 1) : 0;
-
   private string LinePath => BuildPath(false);
   private string AreaPath => BuildPath(true);
 
@@ -77,17 +75,23 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
 
   private void HandlePointerDown(PointerEventArgs e)
   {
-    int count = _localPoints.Count;
-    double halfStep = StepX / 2;
+    int? closestIndex = null;
+    double minDistance = 20.0;
 
-    for (int i = 0; i < count; i++)
+    for (int i = 0; i < _localPoints.Count; i++)
     {
-      if (Math.Abs(e.OffsetX - GetPointX(i)) < halfStep)
+      double dist = Math.Abs(e.OffsetX - GetPointX(i));
+      if (dist < minDistance)
       {
-        _draggingIndex = i;
-        UpdateSpeed(i, e.OffsetY);
-        break;
+        minDistance = dist;
+        closestIndex = i;
       }
+    }
+
+    if (closestIndex.HasValue)
+    {
+      _draggingIndex = closestIndex.Value;
+      UpdateSpeed(_draggingIndex.Value, e.OffsetY);
     }
   }
 
@@ -109,16 +113,16 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
     }
     else
     {
-      int count = _localPoints.Count;
-      double halfStep = StepX / 2;
       int? newHoverIndex = null;
+      double minDistance = 20.0;
 
-      for (int i = 0; i < count; i++)
+      for (int i = 0; i < _localPoints.Count; i++)
       {
-        if (Math.Abs(e.OffsetX - GetPointX(i)) < halfStep)
+        double dist = Math.Abs(e.OffsetX - GetPointX(i));
+        if (dist < minDistance)
         {
+          minDistance = dist;
           newHoverIndex = i;
-          break;
         }
       }
 
@@ -158,7 +162,18 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
     return PaddingX + (normalized * (_width - 2 * PaddingX));
   }
 
-  private double GetPointX(int index) => PaddingX + index * StepX;
+  private double GetPointX(int index)
+  {
+    if (_localPoints.Count == 0) return PaddingX;
+
+    double minTemp = _localPoints[0].Temperature;
+    double maxTemp = _localPoints[^1].Temperature;
+    double range = maxTemp - minTemp;
+
+    double normalized = range > 0 ? (_localPoints[index].Temperature - minTemp) / range : 0;
+
+    return PaddingX + (normalized * (_width - 2 * PaddingX));
+  }
 
   private static double GetPwmY(int speed) => Height - speed / 255.0 * Height;
 

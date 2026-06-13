@@ -1,7 +1,7 @@
 # HP Fan Control (Linux)
 
 ![Platform](https://img.shields.io/badge/platform-Linux-green.svg)
-![Version](https://img.shields.io/badge/version-v2.2.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v2.2.2-blue.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)
 
 A modern, highly optimized Linux desktop application and background service designed for HP Victus series laptops, allowing you to take full control of your thermal management.
