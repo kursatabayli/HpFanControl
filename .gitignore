@@ -482,3 +482,4 @@ $RECYCLE.BIN/
 *.swp
 
 *.vscode/
+*local-test-build/
