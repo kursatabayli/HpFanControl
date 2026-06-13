@@ -52,3 +52,4 @@ public sealed partial class PointEditorDialog : ComponentBase
 
     private void Cancel() => MudDialog.Cancel();
 }
+#pragma warning restore CA1515, CA2227, CA1002

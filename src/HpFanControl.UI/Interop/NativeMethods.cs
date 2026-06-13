@@ -93,3 +93,4 @@ internal static partial class NativeMethods
         IntPtr destroy_data,
         int connect_flags);
 }
+#pragma warning restore CA5392, CA1707, CA1401, CA1515

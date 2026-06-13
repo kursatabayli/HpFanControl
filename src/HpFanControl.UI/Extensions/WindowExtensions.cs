@@ -11,7 +11,7 @@ internal static class WindowExtensions
 {
     public static void ConfigureAndRunWindow(this InfiniFrameBlazorAppBuilder appBuilder, bool startHidden)
     {
-        string iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "favicon.ico");
+        string iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", "favicon.ico");
         IServiceProvider? serviceProvider = null;
 
         appBuilder.WithInfiniFrameWindowBuilder(builder =>

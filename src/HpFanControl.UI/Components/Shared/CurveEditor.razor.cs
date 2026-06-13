@@ -37,8 +37,8 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
 
   private double StepX => _localPoints.Count > 1 ? (_width - 2 * PaddingX) / (_localPoints.Count - 1) : 0;
 
-  private string _linePath => BuildPath(false);
-  private string _areaPath => BuildPath(true);
+  private string LinePath => BuildPath(false);
+  private string AreaPath => BuildPath(true);
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
@@ -61,7 +61,7 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
   {
     if (!_draggingIndex.HasValue)
     {
-      _localPoints = Points.ToList();
+      _localPoints = [.. Points];
     }
   }
 
@@ -160,11 +160,11 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
 
   private double GetPointX(int index) => PaddingX + index * StepX;
 
-  private static double GetPwmY(int speed) => Height - (speed / 255.0) * Height;
+  private static double GetPwmY(int speed) => Height - speed / 255.0 * Height;
 
-  private static int YToPwm(double y) => Math.Clamp((int)Math.Round(((Height - y) / Height) * 255.0), 0, 255);
+  private static int YToPwm(double y) => Math.Clamp((int)Math.Round((Height - y) / Height * 255.0), 0, 255);
 
-  private static int PwmToPercent(int pwm) => (int)Math.Round((pwm / 255.0) * 100);
+  private static int PwmToPercent(int pwm) => (int)Math.Round(pwm / 255.0 * 100);
 
   private static string Invariant(double value) => value.ToString(CultureInfo.InvariantCulture);
 
@@ -237,3 +237,4 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
     }
   }
 }
+#pragma warning restore CA1515, CA2227, CA1002, CA2007, CA1716

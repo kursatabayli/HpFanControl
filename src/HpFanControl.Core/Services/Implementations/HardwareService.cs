@@ -5,56 +5,54 @@ using HpFanControl.Core.Services.Interfaces;
 
 namespace HpFanControl.Core.Services.Implementations;
 
-public class HardwareService : IHardwareService
+public sealed partial class HardwareService(
+    ILogger<HardwareService> logger,
+    ICpuSensor cpuSensor,
+    IGpuSensor gpuSensor,
+    IFanDriver fanDriver) : IHardwareService
 {
-    private readonly ILogger<HardwareService> _logger;
-    private readonly ICpuSensor _cpuSensor;
-    private readonly IGpuSensor _gpuSensor;
-    private readonly IFanDriver _fanDriver;
-
-    public HardwareService(
-        ILogger<HardwareService> logger,
-        ICpuSensor cpuSensor,
-        IGpuSensor gpuSensor,
-        IFanDriver fanDriver)
-    {
-        _logger = logger;
-        _cpuSensor = cpuSensor;
-        _gpuSensor = gpuSensor;
-        _fanDriver = fanDriver;
-    }
-
     public SystemStats GetSystemStats()
     {
-        int cpuTemp = _cpuSensor.ReadTemperature();
-        int gpuTemp = _gpuSensor.ReadTemperature();
+        int cpuTemp = cpuSensor.ReadTemperature();
+        int gpuTemp = gpuSensor.ReadTemperature();
 
-        var (cpuRpm, gpuRpm) = _fanDriver.GetRpms();
+        var (cpuRpm, gpuRpm) = fanDriver.GetRpms();
 
         return new SystemStats(cpuTemp, gpuTemp, cpuRpm, gpuRpm);
     }
 
     public void SetFanMode(FanMode mode)
     {
-        _fanDriver.SetMode(mode);
-        _logger.LogInformation("Fan mode set to: {Mode}", mode);
+        fanDriver.SetMode(mode);
+        if (logger.IsEnabled(LogLevel.Information))
+            LogFanModeSet(mode);
     }
 
-    public void SetFanSpeed(bool isGpu, int pwmValue)
-    {
-        _fanDriver.SetSpeed(isGpu, pwmValue);
-    }
+    public void SetFanSpeed(bool isGpu, int pwmValue) => fanDriver.SetSpeed(isGpu, pwmValue);
 
     public void ForceResetFanMode()
     {
         try
         {
-            _fanDriver.SetMode(FanMode.Auto);
-            _logger.LogInformation("Fan mode forced to Auto (Reset).");
+            fanDriver.SetMode(FanMode.Auto);
+            LogFanModeForcedAuto();
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            _logger.LogError(ex, "Failed to force reset fan mode.");
+            LogForceResetError(ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogForceResetError(ex);
         }
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Fan mode set to: {Mode}")]
+    private partial void LogFanModeSet(FanMode mode);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information, Message = "Fan mode forced to Auto (Reset).")]
+    private partial void LogFanModeForcedAuto();
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Error, Message = "Failed to force reset fan mode.")]
+    private partial void LogForceResetError(Exception ex);
 }

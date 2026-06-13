@@ -56,3 +56,4 @@ public sealed partial class StatusHeader : ComponentBase, IDisposable
     GC.SuppressFinalize(this);
   }
 }
+#pragma warning restore CA1515

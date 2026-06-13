@@ -48,3 +48,4 @@ public sealed partial class ModeSelector : ComponentBase, IDisposable
     GC.SuppressFinalize(this);
   }
 }
+#pragma warning restore CA1515

@@ -85,3 +85,4 @@ internal sealed class WindowActionService
         else TriggerShow();
     }
 }
+#pragma warning restore CA1812

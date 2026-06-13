@@ -6,9 +6,8 @@ using HpFanControl.Core.Models;
 
 namespace HpFanControl.Core.Hardware.Implementations;
 
-public class FanDriver : IFanDriver
+public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
 {
-    private readonly ILogger<FanDriver> _logger;
     private static readonly byte[] HwmonName = "hp"u8.ToArray();
     private const string FilePwmEnable = "pwm1_enable";
     private const string FileCpuPwm = "pwm1";
@@ -24,11 +23,6 @@ public class FanDriver : IFanDriver
     private string? _detectedPath;
 
     private readonly byte[] _readBuffer = new byte[64];
-
-    public FanDriver(ILogger<FanDriver> logger)
-    {
-        _logger = logger;
-    }
 
     public (int CpuRpm, int GpuRpm) GetRpms()
     {
@@ -74,7 +68,7 @@ public class FanDriver : IFanDriver
 
         if (_detectedPath == null)
         {
-            _logger.LogWarning("SetSpeed failed: HP Driver path not found.");
+            LogSetSpeedFailedPathNotFound();
             return;
         }
 
@@ -85,7 +79,7 @@ public class FanDriver : IFanDriver
 
         if (!Utf8Formatter.TryFormat(safePwm, buffer, out int bytesWritten))
             return;
-        
+
         string fileName = isGpu ? FileGpuPwm : FileCpuPwm;
         ref FileStream? stream = ref isGpu ? ref _streamGpuPwm : ref _streamCpuPwm;
 
@@ -122,11 +116,15 @@ public class FanDriver : IFanDriver
                     return;
                 }
             }
-            _logger.LogWarning("HP Fan Control compatible hardware not found.");
+            LogHardwareNotFound();
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogError(ex, "Error while probing hardware.");
+            LogProbingError(ex);
+        }
+        catch (IOException ex)
+        {
+            LogProbingError(ex);
         }
     }
 
@@ -136,8 +134,6 @@ public class FanDriver : IFanDriver
         _streamCpuPwm = null;
         _streamGpuPwm?.Dispose();
         _streamGpuPwm = null;
-
-        _logger.LogDebug("PWM write streams disposed (Not in Manual Mode).");
     }
 
     public void Dispose()
@@ -149,13 +145,28 @@ public class FanDriver : IFanDriver
                 SetMode(FanMode.Auto);
             }
         }
-        catch { }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
 
         _streamCpuInput?.Dispose();
         _streamGpuInput?.Dispose();
 
         ClosePwmStreams();
 
-        _logger.LogInformation("HP Fan Driver disposed.");
+        LogDriverDisposed();
+
+        GC.SuppressFinalize(this);
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Warning, Message = "SetSpeed failed: HP Driver path not found.")]
+    private partial void LogSetSpeedFailedPathNotFound();
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning, Message = "HP Fan Control compatible hardware not found.")]
+    private partial void LogHardwareNotFound();
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Error, Message = "Error while probing hardware.")]
+    private partial void LogProbingError(Exception ex);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Information, Message = "HP Fan Driver disposed.")]
+    private partial void LogDriverDisposed();
 }

@@ -6,7 +6,7 @@ using HpFanControl.Core.Services.Interfaces;
 
 namespace HpFanControl.Core.Services.Implementations;
 
-public class FanControllerService : IFanControllerService, IDisposable
+public sealed partial class FanControllerService : IFanControllerService, IDisposable
 {
     private readonly ILogger<FanControllerService> _logger;
     private readonly IHardwareService _hardware;
@@ -43,7 +43,7 @@ public class FanControllerService : IFanControllerService, IDisposable
     {
         if (_loopTask != null && !_loopTask.IsCompleted) return;
 
-        _logger.LogInformation("Starting Fan Controller Service...");
+        LogStarting();
 
         _currentConfig = _configService.Load();
 
@@ -60,7 +60,7 @@ public class FanControllerService : IFanControllerService, IDisposable
 
     public void Stop()
     {
-        _logger.LogInformation("Stopping Fan Controller Service...");
+        LogStopping();
 
         _cts?.Cancel();
 
@@ -75,7 +75,8 @@ public class FanControllerService : IFanControllerService, IDisposable
     {
         if (_currentConfig.LastMode == mode) return;
 
-        _logger.LogInformation("Changing Fan Mode to: {Mode}", mode);
+        if (_logger.IsEnabled(LogLevel.Information))
+            LogChangingMode(mode);
 
         _currentConfig.LastMode = mode;
         _configService.Save(_currentConfig);
@@ -89,7 +90,7 @@ public class FanControllerService : IFanControllerService, IDisposable
 
     public void LoadConfig(FanConfig config)
     {
-        _logger.LogInformation("Loading new configuration...");
+        LogLoadingConfig();
         _currentConfig = config;
 
         if (_loopTask != null && !_loopTask.IsCompleted && CurrentMode == FanMode.Manual)
@@ -112,17 +113,17 @@ public class FanControllerService : IFanControllerService, IDisposable
 
         try
         {
-            while (timer != null && await timer.WaitForNextTickAsync(token))
-            {
+            while (timer != null && await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
                 UpdateCycle();
-            }
         }
         catch (OperationCanceledException)
         {
         }
+#pragma warning disable CA1031
         catch (Exception ex)
+#pragma warning restore CA1031
         {
-            _logger.LogCritical(ex, "Critical Loop Error in Fan Controller.");
+            LogCriticalLoopError(ex);
         }
     }
 
@@ -153,9 +154,13 @@ public class FanControllerService : IFanControllerService, IDisposable
                 _lastAppliedGpuPwm = targetGpuPwm;
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            _logger.LogError(ex, "Error during update cycle.");
+            LogUpdateCycleError(ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogUpdateCycleError(ex);
         }
     }
 
@@ -166,9 +171,13 @@ public class FanControllerService : IFanControllerService, IDisposable
             _hardware.SetFanMode(_currentConfig.LastMode);
             CurrentMode = _currentConfig.LastMode;
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            _logger.LogError(ex, "Failed to apply fan mode.");
+            LogApplyFanModeError(ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogApplyFanModeError(ex);
         }
     }
 
@@ -185,4 +194,29 @@ public class FanControllerService : IFanControllerService, IDisposable
         _periodicTimer?.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    #region Logging
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Starting Fan Controller Service...")]
+    private partial void LogStarting();
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information, Message = "Stopping Fan Controller Service...")]
+    private partial void LogStopping();
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Information, Message = "Changing Fan Mode to: {Mode}")]
+    private partial void LogChangingMode(FanMode mode);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Information, Message = "Loading new configuration...")]
+    private partial void LogLoadingConfig();
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Critical, Message = "Critical Loop Error in Fan Controller.")]
+    private partial void LogCriticalLoopError(Exception ex);
+
+    [LoggerMessage(EventId = 6, Level = LogLevel.Error, Message = "Error during update cycle.")]
+    private partial void LogUpdateCycleError(Exception ex);
+
+    [LoggerMessage(EventId = 7, Level = LogLevel.Error, Message = "Failed to apply fan mode.")]
+    private partial void LogApplyFanModeError(Exception ex);
+
+    #endregion
 }

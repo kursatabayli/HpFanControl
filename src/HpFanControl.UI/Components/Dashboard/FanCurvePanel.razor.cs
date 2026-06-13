@@ -135,3 +135,4 @@ public sealed partial class FanCurvePanel : ComponentBase, IDisposable
         GC.SuppressFinalize(this);
     }
 }
+#pragma warning restore CA1515

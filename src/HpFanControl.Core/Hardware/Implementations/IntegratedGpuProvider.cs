@@ -1,12 +1,12 @@
+using System.Text;
 using HpFanControl.Core.Hardware.Interfaces;
 using HpFanControl.Core.Helpers;
 using Microsoft.Extensions.Logging;
 
 namespace HpFanControl.Core.Hardware.Implementations;
 
-public class IntegratedGpuProvider : IGpuProvider
+public sealed partial class IntegratedGpuProvider(ILogger<IntegratedGpuProvider> logger) : IGpuProvider
 {
-  private readonly ILogger<IntegratedGpuProvider> _logger;
   private string? _tempPath;
   private FileStream? _stream;
   private readonly byte[] _buffer = new byte[16];
@@ -16,11 +16,6 @@ public class IntegratedGpuProvider : IGpuProvider
   public string Name => "Integrated GPU";
   public bool IsAvailable => _tempPath != null;
   public bool IsActive => true;
-
-  public IntegratedGpuProvider(ILogger<IntegratedGpuProvider> logger)
-  {
-    _logger = logger;
-  }
 
   public void Initialize()
   {
@@ -43,20 +38,28 @@ public class IntegratedGpuProvider : IGpuProvider
         using var fs = File.OpenRead(namePath);
         int bytesRead = fs.Read(nameBuffer);
 
-        var content = SysFs.TrimSpan(nameBuffer.Slice(0, bytesRead));
+        var content = SysFs.TrimSpan(nameBuffer[..bytesRead]);
 
         foreach (var driver in Drivers)
         {
           if (content.SequenceEqual(driver))
           {
             _tempPath = potentialPath;
-            _logger.LogInformation("Integrated GPU Provider found: {Driver} at {Path}",
-                System.Text.Encoding.UTF8.GetString(driver), _tempPath);
+
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+              var driverStr = Encoding.UTF8.GetString(driver);
+              LogIgpuFound(driverStr, _tempPath);
+            }
             return;
           }
         }
       }
-      catch
+      catch (UnauthorizedAccessException)
+      {
+        continue;
+      }
+      catch (IOException)
       {
         continue;
       }
@@ -73,5 +76,10 @@ public class IntegratedGpuProvider : IGpuProvider
   public void Dispose()
   {
     _stream?.Dispose();
+
+    GC.SuppressFinalize(this);
   }
+
+  [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Integrated GPU Provider found: {Driver} at {Path}")]
+  private partial void LogIgpuFound(string driver, string path);
 }

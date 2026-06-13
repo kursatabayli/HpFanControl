@@ -1,7 +1,4 @@
-using HpFanControl.Core.Hardware.Implementations;
-using HpFanControl.Core.Hardware.Interfaces;
-using HpFanControl.Core.Services.Implementations;
-using HpFanControl.Core.Services.Interfaces;
+using HpFanControl.Core;
 using HpFanControl.UI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -20,15 +17,7 @@ internal static class ServiceCollectionExtensions
             logging.SetMinimumLevel(LogLevel.Information);
         });
 
-        services.AddSingleton<IHardwareService, HardwareService>();
-        services.AddSingleton<IConfigService, ConfigService>();
-        services.AddSingleton<IFanControllerService, FanControllerService>();
-        services.AddSingleton<ICpuSensor, CpuSensor>();
-        services.AddSingleton<IGpuSensor, GpuSensor>();
-        services.AddSingleton<IFanDriver, FanDriver>();
-
-        services.AddKeyedSingleton<IGpuProvider, NvidiaGpuProvider>("Discrete");
-        services.AddKeyedSingleton<IGpuProvider, IntegratedGpuProvider>("Integrated");
+        services.AddCoreServices();
 
         services.AddSingleton<WindowActionService>();
         services.AddMudServices();

@@ -1,5 +1,6 @@
 namespace HpFanControl.Core.Models;
 
+#pragma warning disable CA1002, CA2227
 public class FanConfig
 {
     public List<FanCurvePoint> CpuCurve { get; set; } = [];
@@ -55,3 +56,4 @@ public class FanConfig
             .OrderBy(p => p.Temperature)];
     }
 }
+#pragma warning restore CA1002, CA2227
