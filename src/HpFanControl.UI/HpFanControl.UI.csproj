@@ -8,12 +8,13 @@
         <PublishSingleFile>true</PublishSingleFile>
         <PublishReadyToRun>true</PublishReadyToRun>
         <SelfContained>true</SelfContained>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
         <DebugType>embedded</DebugType>
         <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <ApplicationIcon>wwwroot/icons/favicon.ico</ApplicationIcon>
         <AssemblyName>hp-fan-control</AssemblyName>
-        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
         <Version>2.2.2</Version>
         <FileVersion>2.2.2.0</FileVersion>
         <AssemblyVersion>2.2.2.0</AssemblyVersion>

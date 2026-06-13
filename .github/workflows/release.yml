@@ -1,0 +1,49 @@
+name: Build and Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Linux x64 Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.x'
+
+    - name: Publish .NET Project
+      run: |
+        dotnet publish src/HpFanControl.UI/HpFanControl.UI.csproj -c Release -o ./publish-temp
+
+    - name: Prepare Release Package
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        RELEASE_DIR="HpFanControl-v${VERSION}-linux-x64"
+        
+        mkdir -p $RELEASE_DIR/hp-fan-control
+        
+        mv ./publish-temp/* $RELEASE_DIR/hp-fan-control/
+        
+        cp deploy-assets/* $RELEASE_DIR/
+        
+        chmod +x $RELEASE_DIR/install.sh
+        chmod +x $RELEASE_DIR/uninstall.sh
+        
+        tar -czvf ${RELEASE_DIR}.tar.gz $RELEASE_DIR/
+
+    - name: Create Draft Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: HpFanControl-*.tar.gz
+        draft: true
+        generate_release_notes: true
