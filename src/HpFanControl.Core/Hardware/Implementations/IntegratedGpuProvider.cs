@@ -7,6 +7,7 @@ namespace HpFanControl.Core.Hardware.Implementations;
 
 public sealed partial class IntegratedGpuProvider(ILogger<IntegratedGpuProvider> logger) : IGpuProvider
 {
+  private readonly ILogger<IntegratedGpuProvider> _logger = logger;
   private string? _tempPath;
   private FileStream? _stream;
   private readonly byte[] _buffer = new byte[16];
@@ -21,17 +22,16 @@ public sealed partial class IntegratedGpuProvider(ILogger<IntegratedGpuProvider>
   {
     if (_tempPath != null) return;
 
-    var baseDir = "/sys/class/hwmon";
-    if (!Directory.Exists(baseDir)) return;
+    if (!Directory.Exists(LinuxSysFsContracts.HwmonBaseDir)) return;
 
     Span<byte> nameBuffer = stackalloc byte[64];
 
-    foreach (var dir in Directory.EnumerateDirectories(baseDir))
+    foreach (var dir in Directory.EnumerateDirectories(LinuxSysFsContracts.HwmonBaseDir))
     {
-      var potentialPath = Path.Combine(dir, "temp1_input");
+      var potentialPath = Path.Combine(dir, LinuxSysFsContracts.FileTemp1Input);
       if (!File.Exists(potentialPath)) continue;
 
-      var namePath = Path.Combine(dir, "name");
+      var namePath = Path.Combine(dir, LinuxSysFsContracts.FileName);
 
       try
       {
@@ -46,7 +46,7 @@ public sealed partial class IntegratedGpuProvider(ILogger<IntegratedGpuProvider>
           {
             _tempPath = potentialPath;
 
-            if (logger.IsEnabled(LogLevel.Information))
+            if (_logger.IsEnabled(LogLevel.Information))
             {
               var driverStr = Encoding.UTF8.GetString(driver);
               LogIgpuFound(driverStr, _tempPath);
@@ -80,6 +80,8 @@ public sealed partial class IntegratedGpuProvider(ILogger<IntegratedGpuProvider>
     GC.SuppressFinalize(this);
   }
 
+  #region Logging
   [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Integrated GPU Provider found: {Driver} at {Path}")]
   private partial void LogIgpuFound(string driver, string path);
+  #endregion
 }

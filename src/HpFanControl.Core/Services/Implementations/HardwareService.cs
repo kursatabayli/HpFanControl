@@ -11,30 +11,35 @@ public sealed partial class HardwareService(
     IGpuSensor gpuSensor,
     IFanDriver fanDriver) : IHardwareService
 {
+    private readonly ILogger<HardwareService> _logger = logger;
+    private readonly ICpuSensor _cpuSensor = cpuSensor;
+    private readonly IGpuSensor _gpuSensor = gpuSensor;
+    private readonly IFanDriver _fanDriver = fanDriver;
+
     public SystemStats GetSystemStats()
     {
-        int cpuTemp = cpuSensor.ReadTemperature();
-        int gpuTemp = gpuSensor.ReadTemperature();
+        int cpuTemp = _cpuSensor.ReadTemperature();
+        int gpuTemp = _gpuSensor.ReadTemperature();
 
-        var (cpuRpm, gpuRpm) = fanDriver.GetRpms();
+        var (cpuRpm, gpuRpm) = _fanDriver.GetRpms();
 
         return new SystemStats(cpuTemp, gpuTemp, cpuRpm, gpuRpm);
     }
 
     public void SetFanMode(FanMode mode)
     {
-        fanDriver.SetMode(mode);
-        if (logger.IsEnabled(LogLevel.Information))
+        _fanDriver.SetMode(mode);
+        if (_logger.IsEnabled(LogLevel.Information))
             LogFanModeSet(mode);
     }
 
-    public void SetFanSpeed(bool isGpu, int pwmValue) => fanDriver.SetSpeed(isGpu, pwmValue);
+    public void SetFanSpeed(bool isGpu, int pwmValue) => _fanDriver.SetSpeed(isGpu, pwmValue);
 
     public void ForceResetFanMode()
     {
         try
         {
-            fanDriver.SetMode(FanMode.Auto);
+            _fanDriver.SetMode(FanMode.Auto);
             LogFanModeForcedAuto();
         }
         catch (IOException ex)
@@ -47,6 +52,7 @@ public sealed partial class HardwareService(
         }
     }
 
+    #region Logging
     [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Fan mode set to: {Mode}")]
     private partial void LogFanModeSet(FanMode mode);
 
@@ -55,4 +61,5 @@ public sealed partial class HardwareService(
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Error, Message = "Failed to force reset fan mode.")]
     private partial void LogForceResetError(Exception ex);
+    #endregion
 }

@@ -11,7 +11,7 @@ public sealed partial class UpdateDialog : ComponentBase
     [Inject] private UpdateService UpdateService { get; set; } = default!;
 
     private bool _isLoading = true;
-    private string _releaseNotes = string.Empty;
+    private string? _releaseNotes = string.Empty;
     private Uri? _downloadUrl;
     private string _version = string.Empty;
 

@@ -70,9 +70,11 @@ public sealed partial class GpuSensor : IGpuSensor
         return _integratedProvider.GetTemperature();
     }
 
+    #region Logging
     [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "Failed to initialize Nvidia Provider")]
     private partial void LogNvidiaInitError(Exception ex);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Error, Message = "Failed to initialize Integrated Provider")]
     private partial void LogIntegratedInitError(Exception ex);
+    #endregion
 }

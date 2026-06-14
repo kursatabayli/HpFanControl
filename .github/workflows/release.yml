@@ -33,9 +33,9 @@ jobs:
         VERSION=${GITHUB_REF#refs/tags/v}
         RELEASE_DIR="HpFanControl-v${VERSION}-linux-x64"
         
-        mkdir -p $RELEASE_DIR/hp-fan-control
+        mkdir -p $RELEASE_DIR/HpFanControl
         
-        mv ./publish-temp/* $RELEASE_DIR/hp-fan-control/
+        mv ./publish-temp/* $RELEASE_DIR/HpFanControl/
         
         cp deploy-assets/* $RELEASE_DIR/
         

@@ -2,15 +2,17 @@ using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
+using HpFanControl.Core.Helpers;
 
 namespace HpFanControl.UI.Services;
 
 #pragma warning disable CA1812
 internal sealed class UpdateService(IHttpClientFactory httpClientFactory, PreferencesService prefService)
 {
-    private readonly Version _currentVersion = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
-    private static readonly Uri LatestReleaseUri = new("releases/latest", UriKind.Relative);
     private const string GitHubApiName = "GitHubApi";
+    private static readonly Uri LatestReleaseUri = new("releases/latest", UriKind.Relative);
+
+    private readonly Version _currentVersion = Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(1, 0, 0);
 
     public bool IsUpdateAvailable { get; private set; }
     public string AvailableVersion { get; private set; } = string.Empty;
@@ -37,7 +39,6 @@ internal sealed class UpdateService(IHttpClientFactory httpClientFactory, Prefer
             if (!Version.TryParse(latestTag.TrimStart('v', 'V'), out Version? latestVersion))
                 return false;
 
-
             if (latestVersion > _currentVersion)
             {
                 if (!isManualCheck && prefs.SkippedVersion == latestTag)
@@ -55,18 +56,9 @@ internal sealed class UpdateService(IHttpClientFactory httpClientFactory, Prefer
             _hasCheckedThisSession = true;
             return false;
         }
-        catch (HttpRequestException)
-        {
-            return false;
-        }
-        catch (TaskCanceledException)
-        {
-            return false;
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
+        catch (HttpRequestException) { return false; }
+        catch (TaskCanceledException) { return false; }
+        catch (JsonException) { return false; }
     }
 
     public async Task SkipCurrentUpdateAsync()
@@ -81,7 +73,7 @@ internal sealed class UpdateService(IHttpClientFactory httpClientFactory, Prefer
         }
     }
 
-    public async Task<(string ReleaseNotes, Uri? DownloadUrl)> GetUpdateMetadataAsync()
+    public async Task<(string? ReleaseNotes, Uri? DownloadUrl)> GetUpdateMetadataAsync()
     {
         using var client = httpClientFactory.CreateClient(GitHubApiName);
         var response = await client.GetStringAsync(LatestReleaseUri).ConfigureAwait(false);
@@ -89,7 +81,7 @@ internal sealed class UpdateService(IHttpClientFactory httpClientFactory, Prefer
         using var doc = JsonDocument.Parse(response);
         var root = doc.RootElement;
 
-        string releaseNotes = root.GetProperty("body").GetString() ?? "Version notes not available.";
+        string? releaseNotes = root.GetProperty("body").GetString();
         string urlStr = root.GetProperty("assets")[0].GetProperty("browser_download_url").GetString() ?? "";
 
         Uri.TryCreate(urlStr, UriKind.Absolute, out Uri? downloadUri);
@@ -101,13 +93,17 @@ internal sealed class UpdateService(IHttpClientFactory httpClientFactory, Prefer
     {
         if (downloadUrl == null) return;
 
-        string tempArchive = "/tmp/HpFanControl_Update.tar.xz";
-        string extractDir = "/tmp/HpFanControl_Update";
+        string tempPath = Path.GetTempPath();
+        
+        string tempArchive = Path.Combine(tempPath, $"{AppInfo.Name}_Update.tar.xz");
+        string extractDir = Path.Combine(tempPath, $"{AppInfo.Name}_Update");
 
         using var client = httpClientFactory.CreateClient(GitHubApiName);
-        var fileBytes = await client.GetByteArrayAsync(downloadUrl).ConfigureAwait(false);
-
-        await File.WriteAllBytesAsync(tempArchive, fileBytes).ConfigureAwait(false);
+        
+        using var stream = await client.GetStreamAsync(downloadUrl).ConfigureAwait(false);
+        using var fileStream = new FileStream(tempArchive, FileMode.Create, FileAccess.Write, FileShare.None);
+        await stream.CopyToAsync(fileStream).ConfigureAwait(false);
+        fileStream.Close();
 
         if (Directory.Exists(extractDir))
             Directory.Delete(extractDir, true);

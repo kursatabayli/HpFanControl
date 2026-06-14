@@ -9,11 +9,6 @@ namespace HpFanControl.Core.Hardware.Implementations;
 public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
 {
     private static readonly byte[] HwmonName = "hp"u8.ToArray();
-    private const string FilePwmEnable = "pwm1_enable";
-    private const string FileCpuPwm = "pwm1";
-    private const string FileGpuPwm = "pwm2";
-    private const string FileCpuFanInput = "fan1_input";
-    private const string FileGpuFanInput = "fan2_input";
 
     private FileStream? _streamCpuPwm;
     private FileStream? _streamGpuPwm;
@@ -29,8 +24,8 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
         EnsurePath();
         if (_detectedPath == null) return (0, 0);
 
-        int cpu = SysFs.ReadInt(ref _streamCpuInput, Path.Combine(_detectedPath, FileCpuFanInput), _readBuffer);
-        int gpu = SysFs.ReadInt(ref _streamGpuInput, Path.Combine(_detectedPath, FileGpuFanInput), _readBuffer);
+        int cpu = SysFs.ReadInt(ref _streamCpuInput, Path.Combine(_detectedPath, LinuxSysFsContracts.FileFan1Input), _readBuffer);
+        int gpu = SysFs.ReadInt(ref _streamGpuInput, Path.Combine(_detectedPath, LinuxSysFsContracts.FileFan2Input), _readBuffer);
 
         return (cpu, gpu);
     }
@@ -46,7 +41,7 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
             ClosePwmStreams();
         }
 
-        string path = Path.Combine(_detectedPath, FilePwmEnable);
+        string path = Path.Combine(_detectedPath, LinuxSysFsContracts.FilePwm1Enable);
 
         using var fs = new FileStream(path, FileMode.Open, FileAccess.Write);
 
@@ -80,7 +75,7 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
         if (!Utf8Formatter.TryFormat(safePwm, buffer, out int bytesWritten))
             return;
 
-        string fileName = isGpu ? FileGpuPwm : FileCpuPwm;
+        string fileName = isGpu ? LinuxSysFsContracts.FilePwm2 : LinuxSysFsContracts.FilePwm1;
         ref FileStream? stream = ref isGpu ? ref _streamGpuPwm : ref _streamCpuPwm;
 
         SysFs.WriteBytes(ref stream, Path.Combine(_detectedPath, fileName), buffer.Slice(0, bytesWritten));
@@ -90,15 +85,15 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
     {
         if (_detectedPath != null) return;
 
-        var baseDir = "/sys/class/hwmon";
+        var baseDir = LinuxSysFsContracts.HwmonBaseDir;
         try
         {
             foreach (var dir in Directory.EnumerateDirectories(baseDir))
             {
-                string pwmPath = Path.Combine(dir, FilePwmEnable);
+                string pwmPath = Path.Combine(dir, LinuxSysFsContracts.FilePwm1Enable);
                 if (!File.Exists(pwmPath)) continue;
 
-                var namePath = Path.Combine(dir, "name");
+                var namePath = Path.Combine(dir, LinuxSysFsContracts.FileName);
                 FileStream? tempStream = null;
                 bool isHp = false;
                 try
@@ -141,9 +136,7 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
         try
         {
             if (_detectedPath != null)
-            {
                 SetMode(FanMode.Auto);
-            }
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
@@ -158,6 +151,7 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
         GC.SuppressFinalize(this);
     }
 
+    #region Logging
     [LoggerMessage(EventId = 1, Level = LogLevel.Warning, Message = "SetSpeed failed: HP Driver path not found.")]
     private partial void LogSetSpeedFailedPathNotFound();
 
@@ -169,4 +163,5 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
 
     [LoggerMessage(EventId = 5, Level = LogLevel.Information, Message = "HP Fan Driver disposed.")]
     private partial void LogDriverDisposed();
+    #endregion
 }

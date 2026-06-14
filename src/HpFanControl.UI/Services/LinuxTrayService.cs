@@ -1,11 +1,23 @@
 using HpFanControl.UI.Interop;
 using HpFanControl.Core.Models;
 using HpFanControl.Core.Services.Interfaces;
+using System.Reflection;
+using HpFanControl.Core.Helpers;
 
 namespace HpFanControl.UI.Services;
 
-internal sealed class LinuxTrayService
+#pragma warning disable CA1812
+internal sealed class LinuxTrayService(
+    IFanControllerService fanService,
+    WindowActionService windowService) : IDisposable
 {
+    private readonly IFanControllerService _fanService = fanService;
+    private readonly WindowActionService _windowService = windowService;
+    private const string IndicatorCategory = "utilities-system-monitor";
+    private const string GtkSignalActivate = "activate";
+
+    private bool _disposed;
+
     private bool _isUpdatingUi;
     private IntPtr _indicator;
     private IntPtr _menu;
@@ -14,31 +26,23 @@ internal sealed class LinuxTrayService
     private IntPtr _menuItemMax;
     private IntPtr _menuItemToggleUi;
 
-    private readonly List<NativeMethods.GCallback> _keepAliveDelegates = [];
-    private readonly IFanControllerService _fanService;
-    private readonly WindowActionService _windowService;
-    private readonly Action<Action> _invokeOnUI;
-    private readonly Action _onExitRequested;
+    private Action<Action>? _invokeOnUI;
+    private Action? _onExitRequested;
 
+    private readonly List<NativeMethods.GCallback> _keepAliveDelegates = [];
+    private Action? _onVisibilityChangedDelegate;
     private readonly string _iconAuto = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", "fan-auto.svg");
     private readonly string _iconManual = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", "fan-manual.svg");
     private readonly string _iconMax = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", "fan-max.svg");
 
-    public LinuxTrayService(IFanControllerService fanService, WindowActionService windowService, Action<Action> invokeOnUI, Action onExitRequested)
+    public void Initialize(Action<Action> invokeOnUI, Action onExitRequested)
     {
-        _fanService = fanService;
-        _windowService = windowService;
         _invokeOnUI = invokeOnUI;
         _onExitRequested = onExitRequested;
 
-        InitializeTray();
-    }
-
-    private void InitializeTray()
-    {
         NativeMethods.gtk_init(IntPtr.Zero, IntPtr.Zero);
 
-        _indicator = NativeMethods.app_indicator_new("hp-fan-control", "utilities-system-monitor", 1);
+        _indicator = NativeMethods.app_indicator_new(AppInfo.Name, IndicatorCategory, 1);
         _menu = NativeMethods.gtk_menu_new();
 
         _menuItemToggleUi = NativeMethods.gtk_menu_item_new_with_label("Hide");
@@ -49,17 +53,18 @@ internal sealed class LinuxTrayService
         };
 
         _keepAliveDelegates.Add(toggleCallback);
-        NativeMethods.g_signal_connect_data(_menuItemToggleUi, "activate", toggleCallback, IntPtr.Zero, IntPtr.Zero, 0);
+        NativeMethods.g_signal_connect_data(_menuItemToggleUi, GtkSignalActivate, toggleCallback, IntPtr.Zero, IntPtr.Zero, 0);
         NativeMethods.gtk_menu_shell_append(_menu, _menuItemToggleUi);
 
-        _windowService.OnVisibilityChanged += () =>
+        _onVisibilityChangedDelegate = () =>
         {
-            _invokeOnUI(() =>
+            _invokeOnUI?.Invoke(() =>
             {
                 string newLabel = _windowService.IsVisible ? "Hide" : "Show";
                 NativeMethods.gtk_menu_item_set_label(_menuItemToggleUi, newLabel);
             });
         };
+        _windowService.OnVisibilityChanged += _onVisibilityChangedDelegate;
 
         AddSeparator();
 
@@ -70,7 +75,8 @@ internal sealed class LinuxTrayService
         _menuItemMax = AddRadioMenuItem("Max", FanMode.Max);
 
         AddSeparator();
-        AddMenuItem("Exit", _onExitRequested);
+
+        AddMenuItem("Exit", _onExitRequested!);
 
         ApplyMenuState(_fanService.CurrentMode);
 
@@ -83,7 +89,7 @@ internal sealed class LinuxTrayService
 
     private void OnFanModeChanged(FanMode newMode)
     {
-        _invokeOnUI(() =>
+        _invokeOnUI?.Invoke(() =>
         {
             ApplyMenuState(newMode);
         });
@@ -124,13 +130,11 @@ internal sealed class LinuxTrayService
         NativeMethods.GCallback callback = (widget, data) =>
         {
             if (!_isUpdatingUi)
-            {
                 _fanService.SetMode(targetMode);
-            }
         };
 
         _keepAliveDelegates.Add(callback);
-        NativeMethods.g_signal_connect_data(menuItem, "activate", callback, IntPtr.Zero, IntPtr.Zero, 0);
+        NativeMethods.g_signal_connect_data(menuItem, GtkSignalActivate, callback, IntPtr.Zero, IntPtr.Zero, 0);
         NativeMethods.gtk_menu_shell_append(_menu, menuItem);
 
         return menuItem;
@@ -147,7 +151,7 @@ internal sealed class LinuxTrayService
 
         _keepAliveDelegates.Add(callback);
 
-        NativeMethods.g_signal_connect_data(menuItem, "activate", callback, IntPtr.Zero, IntPtr.Zero, 0);
+        NativeMethods.g_signal_connect_data(menuItem, GtkSignalActivate, callback, IntPtr.Zero, IntPtr.Zero, 0);
         NativeMethods.gtk_menu_shell_append(_menu, menuItem);
     }
     private void AddHeader(string label)
@@ -162,4 +166,34 @@ internal sealed class LinuxTrayService
         IntPtr separator = NativeMethods.gtk_separator_menu_item_new();
         NativeMethods.gtk_menu_shell_append(_menu, separator);
     }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~LinuxTrayService()
+    {
+        Dispose(false);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            if (_onVisibilityChangedDelegate != null)
+                _windowService.OnVisibilityChanged -= _onVisibilityChangedDelegate;
+
+            _fanService.ModeChanged -= OnFanModeChanged;
+            
+            _keepAliveDelegates.Clear();
+        }
+
+        _disposed = true;
+    }
 }
+#pragma warning restore CA1812

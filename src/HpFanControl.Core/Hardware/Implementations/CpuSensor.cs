@@ -7,6 +7,7 @@ namespace HpFanControl.Core.Hardware.Implementations;
 
 public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
 {
+    private readonly ILogger<CpuSensor> _logger = logger;
     private static readonly byte[][] PriorityDrivers =
     [
         "k10temp"u8.ToArray(),
@@ -32,8 +33,7 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
 
     public void FindPath()
     {
-        var baseDir = "/sys/class/hwmon";
-        if (!Directory.Exists(baseDir))
+        if (!Directory.Exists(LinuxSysFsContracts.HwmonBaseDir))
         {
             LogHwmonNotFound();
             return;
@@ -41,13 +41,13 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
 
         try
         {
-            var directories = Directory.GetDirectories(baseDir);
+            var directories = Directory.GetDirectories(LinuxSysFsContracts.HwmonBaseDir);
 
             foreach (var targetDriver in PriorityDrivers)
             {
                 foreach (var dir in directories)
                 {
-                    var namePath = Path.Combine(dir, "name");
+                    var namePath = Path.Combine(dir, LinuxSysFsContracts.FileName);
 
                     FileStream? fs = null;
                     bool match = false;
@@ -62,12 +62,12 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
 
                     if (match)
                     {
-                        var potentialPath = Path.Combine(dir, "temp1_input");
+                        var potentialPath = Path.Combine(dir, LinuxSysFsContracts.FileTemp1Input);
 
                         if (File.Exists(potentialPath))
                         {
                             _detectedPath = potentialPath;
-                            if (logger.IsEnabled(LogLevel.Information))
+                            if (_logger.IsEnabled(LogLevel.Information))
                             {
                                 var driverStr = Encoding.UTF8.GetString(targetDriver);
                                 LogSensorDetected(driverStr, _detectedPath);
@@ -102,6 +102,7 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
         GC.SuppressFinalize(this);
     }
 
+    #region Logging
     [LoggerMessage(EventId = 1, Level = LogLevel.Warning, Message = "Hwmon directory not found.")]
     private partial void LogHwmonNotFound();
 
@@ -113,4 +114,5 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Error, Message = "Error while scanning for CPU sensor.")]
     private partial void LogSensorError(Exception ex);
+    #endregion
 }

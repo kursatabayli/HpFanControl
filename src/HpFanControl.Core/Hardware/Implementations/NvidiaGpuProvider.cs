@@ -8,6 +8,7 @@ namespace HpFanControl.Core.Hardware.Implementations;
 
 public sealed partial class NvidiaGpuProvider(ILogger<NvidiaGpuProvider> logger) : IGpuProvider
 {
+  private readonly ILogger<NvidiaGpuProvider> _logger = logger;
   private static readonly byte[] StatusActive = "active"u8.ToArray();
   private static readonly byte[] VendorNvidia = "0x10de"u8.ToArray();
 
@@ -34,20 +35,19 @@ public sealed partial class NvidiaGpuProvider(ILogger<NvidiaGpuProvider> logger)
   {
     if (_statusPath != null) return;
 
-    const string pciRoot = "/sys/bus/pci/devices";
-    if (!Directory.Exists(pciRoot)) return;
+    if (!Directory.Exists(LinuxSysFsContracts.PciDevicesDir)) return;
 
-    foreach (var dir in Directory.EnumerateDirectories(pciRoot))
+    foreach (var dir in Directory.EnumerateDirectories(LinuxSysFsContracts.PciDevicesDir))
     {
-      var vPath = Path.Combine(dir, "vendor");
+      var vPath = Path.Combine(dir, LinuxSysFsContracts.FileVendor);
       FileStream? fs = null;
       try
       {
         if (SysFs.CheckContentEquals(ref fs, vPath, VendorNvidia, _buffer))
         {
-          _statusPath = Path.Combine(dir, "power/runtime_status");
+          _statusPath = Path.Combine(dir, LinuxSysFsContracts.FileRuntimeStatus);
 
-          if (logger.IsEnabled(LogLevel.Information))
+          if (_logger.IsEnabled(LogLevel.Information))
              LogHardwareFound(_statusPath);
 
           break;
@@ -127,6 +127,7 @@ public sealed partial class NvidiaGpuProvider(ILogger<NvidiaGpuProvider> logger)
     }
   }
 
+  #region Logging
   [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Nvidia Hardware found. PM Path: {Path}")]
   private partial void LogHardwareFound(string path);
 
@@ -141,4 +142,5 @@ public sealed partial class NvidiaGpuProvider(ILogger<NvidiaGpuProvider> logger)
 
   [LoggerMessage(EventId = 5, Level = LogLevel.Debug, Message = "Failed to read Nvidia temp.")]
   private partial void LogReadTempFailed(Exception ex);
+  #endregion
 }

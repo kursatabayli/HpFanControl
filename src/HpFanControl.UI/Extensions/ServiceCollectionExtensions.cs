@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Reflection;
 using HpFanControl.Core;
+using HpFanControl.Core.Helpers;
 using HpFanControl.UI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,8 @@ namespace HpFanControl.UI.Extensions;
 
 internal static class ServiceCollectionExtensions
 {
+    private const string GitHubApiName = "GitHubApi";
+
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddLogging(logging =>
@@ -22,13 +25,13 @@ internal static class ServiceCollectionExtensions
         services.AddCoreServices();
 
         services.AddSingleton<WindowActionService>();
+        services.AddSingleton<LinuxTrayService>();
 
-        services.AddHttpClient("GitHubApi", client =>
+        services.AddHttpClient(GitHubApiName, static client =>
         {
             client.BaseAddress = new Uri("https://api.github.com/repos/kursatabayli/HpFanControl/");
 
-            var currentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
-            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("HpFanControl", currentVersion));
+            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(AppInfo.Name, AppInfo.Version));
 
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
