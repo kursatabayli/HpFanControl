@@ -15,13 +15,16 @@ echo "------------------------------------------"
 echo "Starting HP Fan Control Uninstallation"
 echo "------------------------------------------"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
+
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root (sudo)."
   exit 1
 fi
 
 echo "Step 0: Stopping running instances..."
-pkill -f "$APP_NAME" 2>/dev/null || true
+pkill -x "$APP_NAME" 2>/dev/null || true
 sleep 1
 
 echo "Step 1: Removing application files and symlink..."
