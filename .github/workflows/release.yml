@@ -24,14 +24,16 @@ jobs:
       with:
         dotnet-version: '10.x'
 
+    - name: Extract Version from Tag
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
     - name: Publish .NET Project
       run: |
-        dotnet publish src/HpFanControl.UI/HpFanControl.UI.csproj -c Release -o ./publish-temp
+        dotnet publish src/HpFanControl.UI/HpFanControl.UI.csproj -c Release -o ./publish-temp -p:Version=${{ env.VERSION }}
 
     - name: Prepare Release Package
       run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
-        RELEASE_DIR="HpFanControl-v${VERSION}-linux-x64"
+        RELEASE_DIR="HpFanControl-v${{ env.VERSION }}-linux-x64"
         
         mkdir -p $RELEASE_DIR/HpFanControl
         
