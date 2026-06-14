@@ -16,22 +16,44 @@ echo "🚀 Starting HP Fan Control Installation"
 echo "------------------------------------------"
 
 if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root (sudo)."
+  echo "Please run as root (sudo/pkexec)."
   exit 1
+fi
+
+# --- AUTO UPDATE CHECK ---
+IS_AUTO_UPDATE=false
+if [ "$1" == "--auto-update" ]; then
+    IS_AUTO_UPDATE=true
+    echo "⚡ Auto-update mode active. Proceeding silently..."
+fi
+
+# Determine the actual user early on for display launching later
+ACTUAL_USER=${SUDO_USER:-$USER}
+if [ "$ACTUAL_USER" == "root" ]; then
+    # Try to extract the user who ran pkexec
+    ACTUAL_USER=$(logname 2>/dev/null || echo $USER)
 fi
 
 # --- UPDATE CHECK ---
 IS_UPDATE=false
 if [ -d "$INSTALL_DIR" ] || [ -L "$SYMLINK_PATH" ]; then
-    echo "🔄 Existing installation detected at $INSTALL_DIR"
-    read -p "❓ Do you want to UPDATE the application instead of a fresh install? [Y/n] " update_choice
-
-    if [[ "$update_choice" =~ ^[Yy]$ ]] || [[ -z "$update_choice" ]]; then
+    if [ "$IS_AUTO_UPDATE" = true ]; then
         IS_UPDATE=true
         echo "Update mode activated. Terminating any running instances of the app..."
         pkill -f "$APP_NAME" 2>/dev/null || true
+        sleep 1
     else
-        echo "Proceeding with a clean installation/overwrite..."
+        echo "🔄 Existing installation detected at $INSTALL_DIR"
+        read -p "❓ Do you want to UPDATE the application instead of a fresh install? [Y/n] " update_choice
+
+        if [[ "$update_choice" =~ ^[Yy]$ ]] || [[ -z "$update_choice" ]]; then
+            IS_UPDATE=true
+            echo "Update mode activated. Terminating any running instances of the app..."
+            pkill -f "$APP_NAME" 2>/dev/null || true
+            sleep 1
+        else
+            echo "Proceeding with a clean installation/overwrite..."
+        fi
     fi
 fi
 # --------------------
@@ -98,14 +120,13 @@ if [ -f "./$DESKTOP_FILE" ]; then
     mv "/tmp/$DESKTOP_FILE" "$DESKTOP_DIR/"
     chmod 644 "$DESKTOP_DIR/$DESKTOP_FILE"
 
-    ACTUAL_USER=${SUDO_USER:-$USER}
     USER_HOME=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
     USER_AUTOSTART_DIR="$USER_HOME/.config/autostart"
 
-    # Only ask for autostart if it's a new install or if the desktop file doesn't exist in autostart yet
+    # Only ask for autostart if it's a new install or if auto-update is false
     if [ "$IS_UPDATE" = true ] && [ -f "$USER_AUTOSTART_DIR/$DESKTOP_FILE" ]; then
         echo "Keeping existing autostart configuration for user '$ACTUAL_USER'."
-    else
+    elif [ "$IS_AUTO_UPDATE" = false ]; then
         echo ""
         read -p "❓ Do you want HP Fan Control to start automatically in the background on login? [Y/n] " setup_autostart
 
@@ -131,7 +152,6 @@ if [ -f "./$ICON_FILE" ]; then
 fi
 
 echo "Step 5: Automating user group assignment..."
-ACTUAL_USER=${SUDO_USER:-$USER}
 if [ "$ACTUAL_USER" != "root" ]; then
     usermod -aG $GROUP_NAME "$ACTUAL_USER"
     echo "User '$ACTUAL_USER' has been successfully added to '$GROUP_NAME' group."
@@ -143,7 +163,15 @@ echo "------------------------------------------------------------------"
 if [ "$IS_UPDATE" = true ]; then
     echo "🎉 Update completed successfully!"
     echo "------------------------------------------------------------------"
-    echo "You can now launch HP Fan Control from your application menu."
+    
+    if [ "$IS_AUTO_UPDATE" = true ] && [ "$ACTUAL_USER" != "root" ]; then
+        echo "🔄 Auto-restarting application for user '$ACTUAL_USER'..."
+        
+        USER_UID=$(id -u "$ACTUAL_USER")
+        sudo -u "$ACTUAL_USER" env XDG_RUNTIME_DIR=/run/user/$USER_UID DISPLAY=${DISPLAY:-:0} nohup "$SYMLINK_PATH" > /dev/null 2>&1 &
+    else
+        echo "You can now launch HP Fan Control from your application menu."
+    fi
 else
     echo "🎉 Installation completed successfully!"
     echo "------------------------------------------------------------------"

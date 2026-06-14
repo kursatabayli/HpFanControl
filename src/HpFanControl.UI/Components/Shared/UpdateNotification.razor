@@ -1,0 +1,11 @@
+@if (_isUpdateAvailable)
+{
+    <MudButtonGroup Size="Size.Small" OverrideStyles="false" Class="rounded-pill">
+        <MudButton StartIcon="@Icons.Material.Filled.SystemUpdate" Color="Color.Success" IconSize="Size.Medium"
+                   Variant="Variant.Filled" OnClick="() => HandleUpdateClick()">
+            Update
+        </MudButton>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Success" Variant="Variant.Outlined"
+                       OnClick="() => HandleDismissClick()" />
+    </MudButtonGroup>
+}

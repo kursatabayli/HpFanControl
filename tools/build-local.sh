@@ -4,7 +4,7 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-echo "🚀 Starting local test build..."
+echo "Starting local test build..."
 
 VERSION=$(grep -oP '(?<=<Version>)[^<]+' src/HpFanControl.UI/HpFanControl.UI.csproj)
 

@@ -9,8 +9,8 @@ namespace HpFanControl.UI.Components.Dashboard;
 public sealed partial class StatusHeader : ComponentBase, IDisposable
 {
   [Inject] public IFanControllerService FanService { get; set; } = default!;
+  [Inject] private IDialogService DialogService { get; set; } = default!;
   private string _currentModeName = "System Loading...";
-  private string _currentIcon = Icons.Material.Filled.QuestionMark;
 
   protected override void OnInitialized()
   {
@@ -26,28 +26,19 @@ public sealed partial class StatusHeader : ComponentBase, IDisposable
 
   private void UpdateState(FanMode mode)
   {
-    switch (mode)
+    _currentModeName = mode switch
     {
-      case FanMode.Auto:
-        _currentModeName = "Auto Pilot";
-        _currentIcon = Icons.Material.Filled.AutoMode;
-        break;
+      FanMode.Auto => "Auto Pilot",
+      FanMode.Manual => "Manual Override",
+      FanMode.Max => "Max Performance",
+      _ => "Unknown State",
+    };
+  }
 
-      case FanMode.Manual:
-        _currentModeName = "Manual Override";
-        _currentIcon = Icons.Material.Filled.Tune;
-        break;
-
-      case FanMode.Max:
-        _currentModeName = "Max Performance";
-        _currentIcon = Icons.Material.Filled.RocketLaunch;
-        break;
-
-      default:
-        _currentModeName = "Unknown State";
-        _currentIcon = Icons.Material.Filled.QuestionMark;
-        break;
-    }
+  private async Task OpenSettings()
+  {
+    var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+    await DialogService.ShowAsync<Shared.SettingsDialog>("Settings", options).ConfigureAwait(false);
   }
 
   public void Dispose()
