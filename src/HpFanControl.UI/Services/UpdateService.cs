@@ -125,7 +125,8 @@ internal sealed class UpdateService(IHttpClientFactory httpClientFactory, Prefer
             FileName = "pkexec",
             Arguments = $"{scriptPath} --auto-update",
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            WorkingDirectory = extractDir
         });
     }
 }

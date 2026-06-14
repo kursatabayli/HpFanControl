@@ -26,6 +26,9 @@ echo "------------------------------------------"
 echo "Starting $APP_NAME Installation/Update"
 echo "------------------------------------------"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
+
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root (sudo/pkexec)."
   exit 1
@@ -46,8 +49,8 @@ fi
 USER_HOME=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
 
 # --- BACKWARD COMPATIBILITY / KILL PROCESSES ---
-pkill -f "$OLD_APP_NAME" 2>/dev/null || true
-pkill -f "$APP_NAME" 2>/dev/null || true
+pkill -x "$OLD_APP_NAME" 2>/dev/null || true
+pkill -x "$APP_NAME" 2>/dev/null || true
 sleep 1
 
 # --- UPDATE CHECK ---
@@ -70,7 +73,7 @@ if [ -d "$INSTALL_DIR" ] || [ -L "$SYMLINK_PATH" ] || [ -d "$OLD_INSTALL_DIR" ];
 fi
 
 # ==========================================
-# 🧹 STEP 0: LEGACY CLEANUP & MIGRATION
+# STEP 0: LEGACY CLEANUP & MIGRATION
 # ==========================================
 echo "Step 0: Checking for legacy configuration and migrating..."
 
