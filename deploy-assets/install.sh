@@ -5,16 +5,25 @@ APP_NAME="HpFanControl"
 OLD_APP_NAME="hp-fan-control"
 
 INSTALL_DIR="/opt/$APP_NAME"
+OLD_INSTALL_DIR="/opt/$OLD_APP_NAME"
+
 SYMLINK_PATH="/usr/local/bin/$APP_NAME"
+OLD_SYMLINK_PATH="/usr/local/bin/$OLD_APP_NAME"
+
 DESKTOP_DIR="/usr/share/applications"
 ICON_DIR="/usr/share/pixmaps"
+
 DESKTOP_FILE="$APP_NAME.desktop"
+OLD_DESKTOP_FILE="$OLD_APP_NAME.desktop"
+
 ICON_FILE="$APP_NAME.png"
+OLD_ICON_FILE="$OLD_APP_NAME.png"
+
 GROUP_NAME="fancontrol"
 UDEV_RULE="99-fancontrol.rules"
 
 echo "------------------------------------------"
-echo "🚀 Starting HP Fan Control Installation"
+echo "Starting $APP_NAME Installation/Update"
 echo "------------------------------------------"
 
 if [ "$EUID" -ne 0 ]; then
@@ -29,68 +38,78 @@ if [ "$1" == "--auto-update" ]; then
     echo "⚡ Auto-update mode active. Proceeding silently..."
 fi
 
-# Determine the actual user early on for display launching later
+# Determine the actual user early on
 ACTUAL_USER=${SUDO_USER:-$USER}
 if [ "$ACTUAL_USER" == "root" ]; then
-    # Try to extract the user who ran pkexec
     ACTUAL_USER=$(logname 2>/dev/null || echo $USER)
 fi
 USER_HOME=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
 
-# --- MIGRATION & CLEANUP ---
-OLD_INSTALL_DIR="/opt/$OLD_APP_NAME"
-OLD_SYMLINK="/usr/local/bin/$OLD_APP_NAME"
-OLD_CONFIG_DIR="$USER_HOME/.config/$OLD_APP_NAME"
-NEW_CONFIG_DIR="$USER_HOME/.config/$APP_NAME"
-LEGACY_AUTOSTART_FOUND=false
-
-echo "Step 0: Checking for legacy installations and migrating data..."
-
+# --- BACKWARD COMPATIBILITY / KILL PROCESSES ---
 pkill -f "$OLD_APP_NAME" 2>/dev/null || true
 pkill -f "$APP_NAME" 2>/dev/null || true
 sleep 1
 
-if [ -d "$OLD_CONFIG_DIR" ]; then
-    echo "🔄 Legacy configuration found. Migrating to new location..."
-    sudo -u "$ACTUAL_USER" mkdir -p "$NEW_CONFIG_DIR"
-    sudo -u "$ACTUAL_USER" cp -n "$OLD_CONFIG_DIR"/* "$NEW_CONFIG_DIR"/ 2>/dev/null || true
-    rm -rf "$OLD_CONFIG_DIR"
-    echo "✅ Configuration migration successful."
-fi
-
-if [ -d "$OLD_INSTALL_DIR" ]; then
-    rm -rf "$OLD_INSTALL_DIR"
-fi
-if [ -L "$OLD_SYMLINK" ]; then
-    rm -f "$OLD_SYMLINK"
-fi
-if [ -f "$DESKTOP_DIR/$OLD_APP_NAME.desktop" ]; then
-    rm -f "$DESKTOP_DIR/$OLD_APP_NAME.desktop"
-fi
-
-if [ -f "$USER_HOME/.config/autostart/$OLD_APP_NAME.desktop" ]; then
-    LEGACY_AUTOSTART_FOUND=true
-    rm -f "$USER_HOME/.config/autostart/$OLD_APP_NAME.desktop"
-fi
-# -----------------------------------------------------
-
 # --- UPDATE CHECK ---
 IS_UPDATE=false
-if [ -d "$INSTALL_DIR" ] || [ -L "$SYMLINK_PATH" ]; then
+if [ -d "$INSTALL_DIR" ] || [ -L "$SYMLINK_PATH" ] || [ -d "$OLD_INSTALL_DIR" ]; then
     if [ "$IS_AUTO_UPDATE" = true ]; then
         IS_UPDATE=true
+        echo "Update mode activated."
     else
-        echo "🔄 Existing installation detected at $INSTALL_DIR"
+        echo "🔄 Existing installation detected."
         read -p "❓ Do you want to UPDATE the application instead of a fresh install? [Y/n] " update_choice
 
         if [[ "$update_choice" =~ ^[Yy]$ ]] || [[ -z "$update_choice" ]]; then
             IS_UPDATE=true
+            echo "Update mode activated."
         else
             echo "Proceeding with a clean installation/overwrite..."
         fi
     fi
 fi
-# --------------------
+
+# ==========================================
+# 🧹 STEP 0: LEGACY CLEANUP & MIGRATION
+# ==========================================
+echo "Step 0: Checking for legacy configuration and migrating..."
+
+if [ -f "$ICON_DIR/$OLD_ICON_FILE" ]; then
+    rm -f "$ICON_DIR/$OLD_ICON_FILE"
+fi
+
+if [ -L "$OLD_SYMLINK_PATH" ] || [ -f "$OLD_SYMLINK_PATH" ]; then
+    rm -f "$OLD_SYMLINK_PATH"
+fi
+
+if [ -f "$DESKTOP_DIR/$OLD_DESKTOP_FILE" ]; then
+    rm -f "$DESKTOP_DIR/$OLD_DESKTOP_FILE"
+fi
+
+OLD_CONFIG_DIR="$USER_HOME/.config/$OLD_APP_NAME"
+NEW_CONFIG_DIR="$USER_HOME/.config/$APP_NAME"
+
+if [ -d "$OLD_CONFIG_DIR" ]; then
+    echo "Migrating user settings from $OLD_APP_NAME to $APP_NAME..."
+    mkdir -p "$NEW_CONFIG_DIR"
+    cp -r "$OLD_CONFIG_DIR/"* "$NEW_CONFIG_DIR/" 2>/dev/null || true
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$NEW_CONFIG_DIR"
+    rm -rf "$OLD_CONFIG_DIR"
+fi
+
+USER_AUTOSTART_DIR="$USER_HOME/.config/autostart"
+OLD_AUTOSTART_PATH="$USER_AUTOSTART_DIR/$OLD_DESKTOP_FILE"
+HAD_OLD_AUTOSTART=false
+
+if [ -f "$OLD_AUTOSTART_PATH" ]; then
+    HAD_OLD_AUTOSTART=true
+    rm -f "$OLD_AUTOSTART_PATH"
+fi
+
+if [ -d "$OLD_INSTALL_DIR" ]; then
+    rm -rf "$OLD_INSTALL_DIR"
+fi
+# ==========================================
 
 echo "Step 1: Checking and installing system dependencies..."
 
@@ -98,23 +117,19 @@ echo "Step 1: Checking and installing system dependencies..."
 if command -v dnf >/dev/null 2>&1; then
     echo "Detected RPM-based system. Installing via dnf..."
     dnf install -y libayatana-appindicator-gtk3 webkit2gtk4.1 gtk3
-
 # Ubuntu / Debian / Pop!_OS
 elif command -v apt-get >/dev/null 2>&1; then
     echo "Detected Debian-based system. Installing via apt..."
     apt-get update
     apt-get install -y libayatana-appindicator3-1 libwebkit2gtk-4.0-37 gir1.2-ayatanaappindicator3-0.1
-
 # Arch Linux / Manjaro
 elif command -v pacman >/dev/null 2>&1; then
     echo "Detected Arch-based system. Installing via pacman..."
     pacman -S --noconfirm libayatana-appindicator webkit2gtk
-
 # openSUSE
 elif command -v zypper >/dev/null 2>&1; then
     echo "Detected SUSE-based system. Installing via zypper..."
     zypper install -y libayatana-appindicator3-1 webkit2gtk3
-
 else
     echo "Warning: Unsupported package manager. Auto-dependency installation skipped."
 fi
@@ -136,7 +151,6 @@ mkdir -p "$INSTALL_DIR"
 if [ -d "./$APP_NAME" ]; then
     cp -a "./$APP_NAME/." "$INSTALL_DIR/"
     chmod +x "$INSTALL_DIR/$APP_NAME"
-
     ln -sf "$INSTALL_DIR/$APP_NAME" "$SYMLINK_PATH"
 else
     echo "Error: ./$APP_NAME directory not found! Please build the project first."
@@ -154,22 +168,20 @@ if [ -f "./$DESKTOP_FILE" ]; then
     mv "/tmp/$DESKTOP_FILE" "$DESKTOP_DIR/"
     chmod 644 "$DESKTOP_DIR/$DESKTOP_FILE"
 
-    USER_AUTOSTART_DIR="$USER_HOME/.config/autostart"
-
-    if [ -f "$USER_AUTOSTART_DIR/$DESKTOP_FILE" ] || [ "$LEGACY_AUTOSTART_FOUND" = true ]; then
-        echo "Updating existing autostart configuration for user '$ACTUAL_USER'."
+    if [ "$IS_UPDATE" = true ] && [ -f "$USER_AUTOSTART_DIR/$DESKTOP_FILE" ]; then
+        echo "Keeping existing autostart configuration for user '$ACTUAL_USER'."
+    elif [ "$HAD_OLD_AUTOSTART" = true ]; then
+        echo "Recreating autostart configuration from legacy setup..."
         sudo -u "$ACTUAL_USER" mkdir -p "$USER_AUTOSTART_DIR"
         cp "$DESKTOP_DIR/$DESKTOP_FILE" "$USER_AUTOSTART_DIR/$DESKTOP_FILE"
         sed -i "s|^Exec=.*|Exec=$SYMLINK_PATH --hidden|" "$USER_AUTOSTART_DIR/$DESKTOP_FILE"
         chown "$ACTUAL_USER:$ACTUAL_USER" "$USER_AUTOSTART_DIR/$DESKTOP_FILE"
-        
     elif [ "$IS_AUTO_UPDATE" = false ]; then
         echo ""
-        read -p "❓ Do you want HP Fan Control to start automatically in the background on login? [Y/n] " setup_autostart
+        read -p "❓ Do you want $APP_NAME to start automatically in the background on login? [Y/n] " setup_autostart
 
         if [[ "$setup_autostart" =~ ^[Yy]$ ]] || [[ -z "$setup_autostart" ]]; then
             echo "Configuring autostart for user '$ACTUAL_USER'..."
-
             sudo -u "$ACTUAL_USER" mkdir -p "$USER_AUTOSTART_DIR"
             cp "$DESKTOP_DIR/$DESKTOP_FILE" "$USER_AUTOSTART_DIR/$DESKTOP_FILE"
             sed -i "s|^Exec=.*|Exec=$SYMLINK_PATH --hidden|" "$USER_AUTOSTART_DIR/$DESKTOP_FILE"
@@ -205,9 +217,9 @@ if [ "$IS_UPDATE" = true ]; then
         echo "🔄 Auto-restarting application for user '$ACTUAL_USER'..."
         
         USER_UID=$(id -u "$ACTUAL_USER")
-        sudo -u "$ACTUAL_USER" env XDG_RUNTIME_DIR=/run/user/$USER_UID DISPLAY=${DISPLAY:-:0} nohup "$SYMLINK_PATH" > /dev/null 2>&1 &
+        sudo -u "$ACTUAL_USER" env XDG_RUNTIME_DIR=/run/user/$USER_UID DISPLAY=${DISPLAY:-:0} WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-0} nohup "$SYMLINK_PATH" > /dev/null 2>&1 &
     else
-        echo "You can now launch HP Fan Control from your application menu."
+        echo "You can now launch $APP_NAME from your application menu."
     fi
 else
     echo "Installation completed successfully!"
@@ -220,14 +232,11 @@ else
 fi
 
 echo ""
-echo "⌨️  KEYBOARD SHORTCUTS (OPTIONAL):"
-echo "You can set up custom shortcuts in your Desktop Environment settings"
-echo "(e.g., GNOME Settings -> Keyboard -> Custom Shortcuts) using these commands:"
-echo ""
+echo "KEYBOARD SHORTCUTS (OPTIONAL):"
 echo "  Show/Hide Application UI :"
-echo "    HpFanControl --toggle-ui"
+echo "    $APP_NAME --toggle-ui"
 echo ""
 echo "  Toggle Fan Mode (Auto/Max/Manual) :"
-echo "    HpFanControl --toggle-mode"
+echo "    $APP_NAME --toggle-mode"
 echo ""
 echo "------------------------------------------------------------------"
