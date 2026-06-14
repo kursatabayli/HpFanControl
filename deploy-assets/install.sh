@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Configuration
-APP_NAME="hp-fan-control"
+APP_NAME="HpFanControl"
+OLD_APP_NAME="hp-fan-control"
+
 INSTALL_DIR="/opt/$APP_NAME"
 SYMLINK_PATH="/usr/local/bin/$APP_NAME"
 DESKTOP_DIR="/usr/share/applications"
@@ -33,24 +35,56 @@ if [ "$ACTUAL_USER" == "root" ]; then
     # Try to extract the user who ran pkexec
     ACTUAL_USER=$(logname 2>/dev/null || echo $USER)
 fi
+USER_HOME=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
+
+# --- MIGRATION & CLEANUP ---
+OLD_INSTALL_DIR="/opt/$OLD_APP_NAME"
+OLD_SYMLINK="/usr/local/bin/$OLD_APP_NAME"
+OLD_CONFIG_DIR="$USER_HOME/.config/$OLD_APP_NAME"
+NEW_CONFIG_DIR="$USER_HOME/.config/$APP_NAME"
+LEGACY_AUTOSTART_FOUND=false
+
+echo "Step 0: Checking for legacy installations and migrating data..."
+
+pkill -f "$OLD_APP_NAME" 2>/dev/null || true
+pkill -f "$APP_NAME" 2>/dev/null || true
+sleep 1
+
+if [ -d "$OLD_CONFIG_DIR" ]; then
+    echo "🔄 Legacy configuration found. Migrating to new location..."
+    sudo -u "$ACTUAL_USER" mkdir -p "$NEW_CONFIG_DIR"
+    sudo -u "$ACTUAL_USER" cp -n "$OLD_CONFIG_DIR"/* "$NEW_CONFIG_DIR"/ 2>/dev/null || true
+    rm -rf "$OLD_CONFIG_DIR"
+    echo "✅ Configuration migration successful."
+fi
+
+if [ -d "$OLD_INSTALL_DIR" ]; then
+    rm -rf "$OLD_INSTALL_DIR"
+fi
+if [ -L "$OLD_SYMLINK" ]; then
+    rm -f "$OLD_SYMLINK"
+fi
+if [ -f "$DESKTOP_DIR/$OLD_APP_NAME.desktop" ]; then
+    rm -f "$DESKTOP_DIR/$OLD_APP_NAME.desktop"
+fi
+
+if [ -f "$USER_HOME/.config/autostart/$OLD_APP_NAME.desktop" ]; then
+    LEGACY_AUTOSTART_FOUND=true
+    rm -f "$USER_HOME/.config/autostart/$OLD_APP_NAME.desktop"
+fi
+# -----------------------------------------------------
 
 # --- UPDATE CHECK ---
 IS_UPDATE=false
 if [ -d "$INSTALL_DIR" ] || [ -L "$SYMLINK_PATH" ]; then
     if [ "$IS_AUTO_UPDATE" = true ]; then
         IS_UPDATE=true
-        echo "Update mode activated. Terminating any running instances of the app..."
-        pkill -f "$APP_NAME" 2>/dev/null || true
-        sleep 1
     else
         echo "🔄 Existing installation detected at $INSTALL_DIR"
         read -p "❓ Do you want to UPDATE the application instead of a fresh install? [Y/n] " update_choice
 
         if [[ "$update_choice" =~ ^[Yy]$ ]] || [[ -z "$update_choice" ]]; then
             IS_UPDATE=true
-            echo "Update mode activated. Terminating any running instances of the app..."
-            pkill -f "$APP_NAME" 2>/dev/null || true
-            sleep 1
         else
             echo "Proceeding with a clean installation/overwrite..."
         fi
@@ -58,7 +92,7 @@ if [ -d "$INSTALL_DIR" ] || [ -L "$SYMLINK_PATH" ]; then
 fi
 # --------------------
 
-echo "Step 0: Checking and installing system dependencies..."
+echo "Step 1: Checking and installing system dependencies..."
 
 # Fedora / RHEL / CentOS
 if command -v dnf >/dev/null 2>&1; then
@@ -85,7 +119,7 @@ else
     echo "Warning: Unsupported package manager. Auto-dependency installation skipped."
 fi
 
-echo "Step 1: Configuring permissions and udev rules..."
+echo "Step 2: Configuring permissions and udev rules..."
 groupadd -f $GROUP_NAME
 
 if [ -f "./$UDEV_RULE" ]; then
@@ -97,20 +131,20 @@ else
     echo "Warning: $UDEV_RULE not found! Hardware permissions might fail."
 fi
 
-echo "Step 2: Creating directory, copying files and creating symlink..."
+echo "Step 3: Creating directory, copying files and creating symlink..."
 mkdir -p "$INSTALL_DIR"
-if [ -d "./hp-fan-control" ]; then
-    cp -a ./hp-fan-control/. "$INSTALL_DIR/"
+if [ -d "./$APP_NAME" ]; then
+    cp -a "./$APP_NAME/." "$INSTALL_DIR/"
     chmod +x "$INSTALL_DIR/$APP_NAME"
 
     ln -sf "$INSTALL_DIR/$APP_NAME" "$SYMLINK_PATH"
 else
-    echo "Error: ./hp-fan-control directory not found! Please build the project first."
+    echo "Error: ./$APP_NAME directory not found! Please build the project first."
     exit 1
 fi
 
 if [ -f "./$DESKTOP_FILE" ]; then
-    echo "Step 3: Installing desktop entry..."
+    echo "Step 4: Installing desktop entry..."
     cp "./$DESKTOP_FILE" "/tmp/$DESKTOP_FILE"
 
     sed -i "s|^Exec=.*|Exec=$SYMLINK_PATH|" "/tmp/$DESKTOP_FILE"
@@ -120,12 +154,15 @@ if [ -f "./$DESKTOP_FILE" ]; then
     mv "/tmp/$DESKTOP_FILE" "$DESKTOP_DIR/"
     chmod 644 "$DESKTOP_DIR/$DESKTOP_FILE"
 
-    USER_HOME=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
     USER_AUTOSTART_DIR="$USER_HOME/.config/autostart"
 
-    # Only ask for autostart if it's a new install or if auto-update is false
-    if [ "$IS_UPDATE" = true ] && [ -f "$USER_AUTOSTART_DIR/$DESKTOP_FILE" ]; then
-        echo "Keeping existing autostart configuration for user '$ACTUAL_USER'."
+    if [ -f "$USER_AUTOSTART_DIR/$DESKTOP_FILE" ] || [ "$LEGACY_AUTOSTART_FOUND" = true ]; then
+        echo "Updating existing autostart configuration for user '$ACTUAL_USER'."
+        sudo -u "$ACTUAL_USER" mkdir -p "$USER_AUTOSTART_DIR"
+        cp "$DESKTOP_DIR/$DESKTOP_FILE" "$USER_AUTOSTART_DIR/$DESKTOP_FILE"
+        sed -i "s|^Exec=.*|Exec=$SYMLINK_PATH --hidden|" "$USER_AUTOSTART_DIR/$DESKTOP_FILE"
+        chown "$ACTUAL_USER:$ACTUAL_USER" "$USER_AUTOSTART_DIR/$DESKTOP_FILE"
+        
     elif [ "$IS_AUTO_UPDATE" = false ]; then
         echo ""
         read -p "❓ Do you want HP Fan Control to start automatically in the background on login? [Y/n] " setup_autostart
@@ -147,11 +184,11 @@ else
 fi
 
 if [ -f "./$ICON_FILE" ]; then
-    echo "Step 4: Deploying icon..."
+    echo "Step 5: Deploying icon..."
     cp "./$ICON_FILE" "$ICON_DIR/$ICON_FILE"
 fi
 
-echo "Step 5: Automating user group assignment..."
+echo "Step 6: Automating user group assignment..."
 if [ "$ACTUAL_USER" != "root" ]; then
     usermod -aG $GROUP_NAME "$ACTUAL_USER"
     echo "User '$ACTUAL_USER' has been successfully added to '$GROUP_NAME' group."
@@ -161,7 +198,7 @@ fi
 
 echo "------------------------------------------------------------------"
 if [ "$IS_UPDATE" = true ]; then
-    echo "🎉 Update completed successfully!"
+    echo "Update completed successfully!"
     echo "------------------------------------------------------------------"
     
     if [ "$IS_AUTO_UPDATE" = true ] && [ "$ACTUAL_USER" != "root" ]; then
@@ -173,7 +210,7 @@ if [ "$IS_UPDATE" = true ]; then
         echo "You can now launch HP Fan Control from your application menu."
     fi
 else
-    echo "🎉 Installation completed successfully!"
+    echo "Installation completed successfully!"
     echo "------------------------------------------------------------------"
     echo ""
     echo "⚠️  IMPORTANT - REBOOT REQUIRED:"
@@ -188,9 +225,9 @@ echo "You can set up custom shortcuts in your Desktop Environment settings"
 echo "(e.g., GNOME Settings -> Keyboard -> Custom Shortcuts) using these commands:"
 echo ""
 echo "  Show/Hide Application UI :"
-echo "    hp-fan-control --toggle-ui"
+echo "    HpFanControl --toggle-ui"
 echo ""
 echo "  Toggle Fan Mode (Auto/Max/Manual) :"
-echo "    hp-fan-control --toggle-mode"
+echo "    HpFanControl --toggle-mode"
 echo ""
 echo "------------------------------------------------------------------"

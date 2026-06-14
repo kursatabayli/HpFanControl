@@ -9,7 +9,6 @@ namespace HpFanControl.UI.Helpers;
 
 internal static partial class AppBootstrapper
 {
-    private static LinuxTrayService? _trayService;
     public static void InitializeServices(IServiceProvider serviceProvider, IInfiniFrameWindow mainWindow)
     {
         var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
@@ -27,9 +26,9 @@ internal static partial class AppBootstrapper
 
             var windowAction = serviceProvider.GetRequiredService<WindowActionService>();
 
-            _trayService = new LinuxTrayService(
-                fanController,
-                windowAction,
+            var trayService = serviceProvider.GetRequiredService<LinuxTrayService>();
+
+            trayService.Initialize(
                 invokeOnUI: mainWindow.Invoke,
                 onExitRequested: () =>
                 {
@@ -69,9 +68,11 @@ internal static partial class AppBootstrapper
         }
     }
 
+    #region Logging
     [LoggerMessage(EventId = 3, Level = LogLevel.Information, Message = "Application bootstrapping...")]
     private static partial void LogBootstrapping(ILogger logger);
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Critical, Message = "Failed to initialize services.")]
     private static partial void LogBootstrapCritical(ILogger logger, Exception ex);
+    #endregion
 }

@@ -6,13 +6,17 @@ using HpFanControl.Core.Services.Interfaces;
 
 namespace HpFanControl.Core.Services.Implementations;
 
-public sealed partial class FanControllerService : IFanControllerService, IDisposable
+public sealed partial class FanControllerService(
+    ILogger<FanControllerService> logger,
+    IHardwareService hardware,
+    IConfigService configService) : IFanControllerService, IDisposable
 {
-    private readonly ILogger<FanControllerService> _logger;
-    private readonly IHardwareService _hardware;
-    private readonly IConfigService _configService;
+    private readonly ILogger<FanControllerService> _logger = logger;
+    private readonly IHardwareService _hardware = hardware;
+    private readonly IConfigService _configService = configService;
 
-    private FanConfig _currentConfig;
+    private FanConfig _currentConfig = FanConfig.Default;
+    public FanMode CurrentMode { get; private set; } = FanConfig.Default.LastMode;
 
     private PeriodicTimer? _periodicTimer;
     private CancellationTokenSource? _cts;
@@ -21,23 +25,8 @@ public sealed partial class FanControllerService : IFanControllerService, IDispo
     private int _lastAppliedCpuPwm = -1;
     private int _lastAppliedGpuPwm = -1;
 
-    public FanMode CurrentMode { get; private set; }
-
     public event Action<SystemStats>? StatsUpdated;
     public event Action<FanMode>? ModeChanged;
-
-    public FanControllerService(
-        ILogger<FanControllerService> logger,
-        IHardwareService hardware,
-        IConfigService configService)
-    {
-        _logger = logger;
-        _hardware = hardware;
-        _configService = configService;
-
-        _currentConfig = FanConfig.Default;
-        CurrentMode = _currentConfig.LastMode;
-    }
 
     public void Start()
     {

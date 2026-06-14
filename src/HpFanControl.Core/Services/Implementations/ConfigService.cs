@@ -3,11 +3,14 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using HpFanControl.Core.Models;
 using HpFanControl.Core.Services.Interfaces;
+using HpFanControl.Core.Helpers;
 
 namespace HpFanControl.Core.Services.Implementations;
 
 public sealed partial class ConfigService : IConfigService
 {
+    private const string ConfigFileName = "config.json";
+
     private readonly ILogger<ConfigService> _logger;
     private readonly string _configFolder;
     private readonly string _configPath;
@@ -17,8 +20,9 @@ public sealed partial class ConfigService : IConfigService
         _logger = logger;
 
         string baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        _configFolder = Path.Combine(baseDir, "hp-fan-control");
-        _configPath = Path.Combine(_configFolder, "config.json");
+        
+        _configFolder = Path.Combine(baseDir, AppInfo.Name);
+        _configPath = Path.Combine(_configFolder, ConfigFileName);
     }
 
     public FanConfig Load()
@@ -113,6 +117,7 @@ public sealed partial class ConfigService : IConfigService
         }
     }
 
+    #region Logging
     [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "Failed to load config file. Reverting to defaults.")]
     private partial void LogLoadError(Exception ex);
 
@@ -124,6 +129,7 @@ public sealed partial class ConfigService : IConfigService
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Error, Message = "Critical error: Could not create config directory/file.")]
     private partial void LogCriticalCreateError(Exception ex);
+    #endregion
 }
 
 [JsonSerializable(typeof(FanConfig))]

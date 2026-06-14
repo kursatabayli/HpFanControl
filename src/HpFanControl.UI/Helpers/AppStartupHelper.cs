@@ -50,6 +50,8 @@ internal static partial class AppStartupHelper
         };
     }
 
+    #region Logging
     [LoggerMessage(EventId = 2, Level = LogLevel.Critical, Message = "Fatal application crash detected!")]
     private static partial void LogFatalCrash(ILogger logger, Exception? ex);
+    #endregion
 }

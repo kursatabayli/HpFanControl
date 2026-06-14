@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-APP_NAME="hp-fan-control"
+APP_NAME="HpFanControl"
 INSTALL_DIR="/opt/$APP_NAME"
 SYMLINK_PATH="/usr/local/bin/$APP_NAME"
 DESKTOP_DIR="/usr/share/applications"
@@ -12,13 +12,17 @@ GROUP_NAME="fancontrol"
 UDEV_RULE="99-fancontrol.rules"
 
 echo "------------------------------------------"
-echo "🗑️ Starting HP Fan Control Uninstallation"
+echo "Starting HP Fan Control Uninstallation"
 echo "------------------------------------------"
 
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root (sudo)."
   exit 1
 fi
+
+echo "Step 0: Stopping running instances..."
+pkill -f "$APP_NAME" 2>/dev/null || true
+sleep 1
 
 echo "Step 1: Removing application files and symlink..."
 if [ -d "$INSTALL_DIR" ]; then
@@ -59,5 +63,5 @@ if getent group "$GROUP_NAME" > /dev/null; then
 fi
 
 echo "------------------------------------------"
-echo "✨ Uninstallation finished successfully. Your system is clean."
+echo "Uninstallation finished successfully. Your system is clean."
 echo "------------------------------------------"

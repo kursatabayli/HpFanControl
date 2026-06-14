@@ -1,3 +1,5 @@
+using System.Reflection;
+using HpFanControl.Core.Helpers;
 using HpFanControl.UI.Helpers;
 using HpFanControl.UI.Interop;
 using HpFanControl.UI.Services;
@@ -9,9 +11,12 @@ namespace HpFanControl.UI.Extensions;
 
 internal static class WindowExtensions
 {
+    private const string WebKitZoomGesture = "wk-view-zoom-gesture";
+
     public static void ConfigureAndRunWindow(this InfiniFrameBlazorAppBuilder appBuilder, bool startHidden)
     {
         string iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", "favicon.ico");
+
         IServiceProvider? serviceProvider = null;
 
         appBuilder.WithInfiniFrameWindowBuilder(builder =>
@@ -21,7 +26,7 @@ internal static class WindowExtensions
 #endif
 
             builder.SetIconFile(iconPath)
-            .SetTitle("HP Fan Control")
+            .SetTitle(AppInfo.Name)
             .SetUseOsDefaultSize(false)
             .SetChromeless(true)
             .SetResizable(true)
@@ -41,7 +46,7 @@ internal static class WindowExtensions
                     IntPtr webViewPointer = NativeMethods.gtk_bin_get_child(windowPointer);
                     if (webViewPointer != IntPtr.Zero)
                     {
-                        IntPtr gesturePointer = NativeMethods.g_object_get_data(webViewPointer, "wk-view-zoom-gesture");
+                        IntPtr gesturePointer = NativeMethods.g_object_get_data(webViewPointer, WebKitZoomGesture);
                         if (gesturePointer != IntPtr.Zero)
                             NativeMethods.gtk_event_controller_set_propagation_phase(gesturePointer, 0);
                     }

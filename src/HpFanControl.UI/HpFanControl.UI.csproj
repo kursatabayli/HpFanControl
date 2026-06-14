@@ -14,10 +14,10 @@
         <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <ApplicationIcon>wwwroot/icons/favicon.ico</ApplicationIcon>
-        <AssemblyName>hp-fan-control</AssemblyName>
-        <Version>2.3.0</Version>
-        <FileVersion>2.3.0.0</FileVersion>
-        <AssemblyVersion>2.3.0.0</AssemblyVersion>
+        <AssemblyName>HpFanControl</AssemblyName>
+        <Version>2.4.0</Version>
+        <FileVersion>2.4.0.0</FileVersion>
+        <AssemblyVersion>2.4.0.0</AssemblyVersion>
     </PropertyGroup>
 
     <PropertyGroup>

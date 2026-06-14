@@ -17,10 +17,10 @@ TARGET_DIR="local-test-build/HpFanControl-v${VERSION}-linux-x64"
 
 echo "Creating test structure..."
 rm -rf "local-test-build"
-mkdir -p "$TARGET_DIR/hp-fan-control"
+mkdir -p "$TARGET_DIR/HpFanControl"
 
 echo "Publishing .NET project..."
-dotnet publish src/HpFanControl.UI/HpFanControl.UI.csproj -c Release -o "$TARGET_DIR/hp-fan-control"
+dotnet publish src/HpFanControl.UI/HpFanControl.UI.csproj -c Release -o "$TARGET_DIR/HpFanControl"
 
 echo "Copying static assets..."
 cp deploy-assets/* "$TARGET_DIR/"
