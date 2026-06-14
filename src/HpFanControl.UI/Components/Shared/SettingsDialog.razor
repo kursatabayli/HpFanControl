@@ -1,0 +1,38 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Class="d-flex align-center">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />
+            Preferences
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="4" Class="pa-4" AlignItems="AlignItems.Start">
+
+            <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="fw-bold text-uppercase ls-1">
+                Updates
+            </MudText>
+
+            <MudSwitch T="bool" @bind-Value="_prefs.CheckUpdatesOnStartup" @bind-Value:after="OnStartupCheckChanged"
+                       Color="Color.Success" UncheckedColor="Color.Error" Label="Check for updates automatically on startup" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="CheckForUpdatesAsync"
+                       Disabled="@_isChecking" Size="Size.Small">
+                @if (_isChecking)
+                {
+                    <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
+                    <MudText>Checking...</MudText>
+                }
+                else
+                {
+                    <MudText>Check Updates</MudText>
+                }
+            </MudButton>
+
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>

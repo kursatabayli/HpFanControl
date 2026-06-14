@@ -1,3 +1,5 @@
+using System.Net.Http.Headers;
+using System.Reflection;
 using HpFanControl.Core;
 using HpFanControl.UI.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +22,21 @@ internal static class ServiceCollectionExtensions
         services.AddCoreServices();
 
         services.AddSingleton<WindowActionService>();
+
+        services.AddHttpClient("GitHubApi", client =>
+        {
+            client.BaseAddress = new Uri("https://api.github.com/repos/kursatabayli/HpFanControl/");
+
+            var currentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
+            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("HpFanControl", currentVersion));
+
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
+        });
+
+        services.AddSingleton<PreferencesService>();
+        services.AddSingleton<UpdateService>();
+
         services.AddMudServices();
 
         return services;

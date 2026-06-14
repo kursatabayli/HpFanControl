@@ -1,7 +1,7 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
 
     <MudAvatar Variant="Variant.Filled" Color="Color.Primary" Rounded="true" Size="Size.Medium" Class="mud-elevation-4">
-        <MudIcon Icon="@_currentIcon" Size="Size.Medium" />
+        <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="Size.Medium" Color="Color.Inherit" OnClick="() => OpenSettings()"/>
     </MudAvatar>
 
     <MudStack Spacing="0">
@@ -13,5 +13,9 @@
             @_currentModeName
         </MudText>
     </MudStack>
+
+    <MudSpacer />
+
+    <UpdateNotification />
 
 </MudStack>
