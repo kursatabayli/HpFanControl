@@ -24,6 +24,12 @@
         <AnalysisLevel>latest-All</AnalysisLevel>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <ServerGarbageCollection>false</ServerGarbageCollection>
+        <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+        <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="InfiniLore.InfiniFrame.BlazorWebView" Version="0.13.1" />
         <PackageReference Include="Markdig" Version="1.3.0" />
