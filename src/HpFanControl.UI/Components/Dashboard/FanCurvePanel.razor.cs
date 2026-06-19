@@ -126,8 +126,11 @@ public sealed partial class FanCurvePanel : ComponentBase, IDisposable
 
     public void Dispose()
     {
-        FanService?.StatsUpdated -= OnStatsUpdated;
-        FanService?.ModeChanged -= OnModeChanged;
+        if (FanService != null)
+        {
+            FanService.StatsUpdated -= OnStatsUpdated;
+            FanService.ModeChanged -= OnModeChanged;
+        }
 
         GC.SuppressFinalize(this);
     }

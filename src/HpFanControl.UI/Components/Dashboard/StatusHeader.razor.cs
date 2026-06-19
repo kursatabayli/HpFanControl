@@ -43,7 +43,9 @@ public sealed partial class StatusHeader : ComponentBase, IDisposable
 
   public void Dispose()
   {
-    FanService?.ModeChanged -= OnModeChanged;
+    if (FanService != null)
+        FanService.ModeChanged -= OnModeChanged;
+
     GC.SuppressFinalize(this);
   }
 }

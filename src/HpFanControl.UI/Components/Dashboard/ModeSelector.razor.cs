@@ -44,7 +44,9 @@ public sealed partial class ModeSelector : ComponentBase, IDisposable
 
   public void Dispose()
   {
-    FanService?.ModeChanged -= OnModeChangedFromService;
+    if (FanService != null)
+        FanService.ModeChanged -= OnModeChangedFromService;
+
     GC.SuppressFinalize(this);
   }
 }
