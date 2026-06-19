@@ -16,7 +16,7 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
     ];
 
     private string? _sensorFilePath;
-    private FileStream? _stream;
+    private FileStream? _temperatureStream;
 
     private readonly byte[] _tempBuffer = new byte[16];
 
@@ -28,7 +28,7 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
             if (_sensorFilePath == null) return 0;
         }
 
-        return SysFs.ReadInt(ref _stream, _sensorFilePath!, _tempBuffer) / 1000;
+        return SysFs.ReadInt(ref _temperatureStream, _sensorFilePath!, _tempBuffer) / 1000;
     }
 
     public void FindPath()
@@ -73,8 +73,8 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
                                 LogSensorDetected(driverStr, _sensorFilePath);
                             }
 
-                            _stream?.Dispose();
-                            _stream = null;
+                            _temperatureStream?.Dispose();
+                            _temperatureStream = null;
 
                             return;
                         }
@@ -96,8 +96,8 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
 
     public void Dispose()
     {
-        _stream?.Dispose();
-        _stream = null;
+        _temperatureStream?.Dispose();
+        _temperatureStream = null;
 
         GC.SuppressFinalize(this);
     }
