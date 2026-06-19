@@ -68,7 +68,9 @@ public sealed partial class StatsDisplay : ComponentBase, IDisposable
 
   public void Dispose()
   {
-    FanService?.StatsUpdated -= OnStatsUpdated;
+    if (FanService != null)
+      FanService.StatsUpdated -= OnStatsUpdated;
+
     GC.SuppressFinalize(this);
   }
 }

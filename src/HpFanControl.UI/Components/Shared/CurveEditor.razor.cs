@@ -35,8 +35,11 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
   private int? _draggingIndex;
   private int? _hoverIndex;
 
-  private string LinePath => BuildPath(false);
-  private string AreaPath => BuildPath(true);
+  private string _cachedLinePath = "";
+  private string _cachedAreaPath = "";
+
+  private string LinePath => _cachedLinePath;
+  private string AreaPath => _cachedAreaPath;
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
@@ -50,6 +53,7 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
       if (initialWidth > 0)
       {
         _width = initialWidth;
+        UpdatePathCaches();
         StateHasChanged();
       }
     }
@@ -59,8 +63,30 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
   {
     if (!_draggingIndex.HasValue)
     {
-      _localPoints = [.. Points];
+      if (!ArePointsEqual(_localPoints, Points))
+      {
+        _localPoints = [.. Points];
+        UpdatePathCaches();
+      }
     }
+  }
+
+  private static bool ArePointsEqual(List<FanCurvePoint> a, List<FanCurvePoint> b)
+  {
+    if (a.Count != b.Count) return false;
+    for (int i = 0; i < a.Count; i++)
+    {
+      if (a[i].Temperature != b[i].Temperature || a[i].Speed != b[i].Speed)
+        return false;
+    }
+    return true;
+  }
+
+  private void UpdatePathCaches()
+  {
+    if (_localPoints.Count == 0) return;
+    _cachedLinePath = BuildPath(false);
+    _cachedAreaPath = BuildPath(true);
   }
 
   [JSInvokable]
@@ -69,6 +95,7 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
     if (_width != width)
     {
       _width = width;
+      UpdatePathCaches();
       StateHasChanged();
     }
   }
@@ -145,6 +172,7 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
     if (_localPoints[index].Speed != newPwm)
     {
       _localPoints[index] = _localPoints[index] with { Speed = newPwm };
+      UpdatePathCaches();
     }
   }
 
@@ -227,6 +255,8 @@ public sealed partial class CurveEditor : ComponentBase, IAsyncDisposable
     if (result is not null && !result.Canceled && result.Data is List<FanCurvePoint> updatedPoints)
     {
       _localPoints = updatedPoints;
+
+      UpdatePathCaches();
 
       await PointsChanged.InvokeAsync(_localPoints);
 

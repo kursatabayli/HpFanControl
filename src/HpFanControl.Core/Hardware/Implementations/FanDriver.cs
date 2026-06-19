@@ -15,17 +15,26 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
     private FileStream? _streamCpuInput;
     private FileStream? _streamGpuInput;
 
-    private string? _detectedPath;
+    private DevicePaths? _paths;
+
+    private sealed record DevicePaths(
+        string BaseDir,
+        string CpuInput,
+        string GpuInput,
+        string Pwm1Enable,
+        string CpuPwm,
+        string GpuPwm
+    );
 
     private readonly byte[] _readBuffer = new byte[64];
 
     public (int CpuRpm, int GpuRpm) GetRpms()
     {
         EnsurePath();
-        if (_detectedPath == null) return (0, 0);
+        if (_paths == null) return (0, 0);
 
-        int cpu = SysFs.ReadInt(ref _streamCpuInput, Path.Combine(_detectedPath, LinuxSysFsContracts.FileFan1Input), _readBuffer);
-        int gpu = SysFs.ReadInt(ref _streamGpuInput, Path.Combine(_detectedPath, LinuxSysFsContracts.FileFan2Input), _readBuffer);
+        int cpu = SysFs.ReadInt(ref _streamCpuInput, _paths.CpuInput, _readBuffer);
+        int gpu = SysFs.ReadInt(ref _streamGpuInput, _paths.GpuInput, _readBuffer);
 
         return (cpu, gpu);
     }
@@ -33,17 +42,13 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
     public void SetMode(FanMode mode)
     {
         EnsurePath();
-        if (_detectedPath == null) return;
+        if (_paths == null) return;
 
 
         if (mode != FanMode.Manual)
-        {
             ClosePwmStreams();
-        }
 
-        string path = Path.Combine(_detectedPath, LinuxSysFsContracts.FilePwm1Enable);
-
-        using var fs = new FileStream(path, FileMode.Open, FileAccess.Write);
+        using var fs = new FileStream(_paths.Pwm1Enable, FileMode.Open, FileAccess.Write);
 
         byte value = mode switch
         {
@@ -54,14 +59,13 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
         };
 
         fs.WriteByte(value);
-
     }
 
     public void SetSpeed(bool isGpu, int pwm)
     {
         EnsurePath();
 
-        if (_detectedPath == null)
+        if (_paths == null)
         {
             LogSetSpeedFailedPathNotFound();
             return;
@@ -75,15 +79,15 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
         if (!Utf8Formatter.TryFormat(safePwm, buffer, out int bytesWritten))
             return;
 
-        string fileName = isGpu ? LinuxSysFsContracts.FilePwm2 : LinuxSysFsContracts.FilePwm1;
+        string targetPath = isGpu ? _paths.GpuPwm : _paths.CpuPwm;
         ref FileStream? stream = ref isGpu ? ref _streamGpuPwm : ref _streamCpuPwm;
 
-        SysFs.WriteBytes(ref stream, Path.Combine(_detectedPath, fileName), buffer.Slice(0, bytesWritten));
+        SysFs.WriteBytes(ref stream, targetPath, buffer[..bytesWritten]);
     }
 
     private void EnsurePath()
     {
-        if (_detectedPath != null) return;
+        if (_paths != null) return;
 
         var baseDir = LinuxSysFsContracts.HwmonBaseDir;
         try
@@ -107,7 +111,15 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
 
                 if (isHp)
                 {
-                    _detectedPath = dir;
+                    _paths = new DevicePaths(
+                        BaseDir: dir,
+                        CpuInput: Path.Combine(dir, LinuxSysFsContracts.FileFan1Input),
+                        GpuInput: Path.Combine(dir, LinuxSysFsContracts.FileFan2Input),
+                        Pwm1Enable: Path.Combine(dir, LinuxSysFsContracts.FilePwm1Enable),
+                        CpuPwm: Path.Combine(dir, LinuxSysFsContracts.FilePwm1),
+                        GpuPwm: Path.Combine(dir, LinuxSysFsContracts.FilePwm2)
+                    );
+
                     return;
                 }
             }
@@ -135,7 +147,7 @@ public sealed partial class FanDriver(ILogger<FanDriver> logger) : IFanDriver
     {
         try
         {
-            if (_detectedPath != null)
+            if (_paths != null)
                 SetMode(FanMode.Auto);
         }
         catch (IOException) { }

@@ -15,20 +15,20 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
         "acpitz"u8.ToArray()
     ];
 
-    private string? _detectedPath;
-    private FileStream? _stream;
+    private string? _sensorFilePath;
+    private FileStream? _temperatureStream;
 
     private readonly byte[] _tempBuffer = new byte[16];
 
     public int ReadTemperature()
     {
-        if (_detectedPath == null)
+        if (_sensorFilePath == null)
         {
             FindPath();
-            if (_detectedPath == null) return 0;
+            if (_sensorFilePath == null) return 0;
         }
 
-        return SysFs.ReadInt(ref _stream, _detectedPath!, _tempBuffer) / 1000;
+        return SysFs.ReadInt(ref _temperatureStream, _sensorFilePath!, _tempBuffer) / 1000;
     }
 
     public void FindPath()
@@ -41,7 +41,7 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
 
         try
         {
-            var directories = Directory.GetDirectories(LinuxSysFsContracts.HwmonBaseDir);
+            var directories = Directory.EnumerateDirectories(LinuxSysFsContracts.HwmonBaseDir);
 
             foreach (var targetDriver in PriorityDrivers)
             {
@@ -66,15 +66,15 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
 
                         if (File.Exists(potentialPath))
                         {
-                            _detectedPath = potentialPath;
+                            _sensorFilePath = potentialPath;
                             if (_logger.IsEnabled(LogLevel.Information))
                             {
                                 var driverStr = Encoding.UTF8.GetString(targetDriver);
-                                LogSensorDetected(driverStr, _detectedPath);
+                                LogSensorDetected(driverStr, _sensorFilePath);
                             }
 
-                            _stream?.Dispose();
-                            _stream = null;
+                            _temperatureStream?.Dispose();
+                            _temperatureStream = null;
 
                             return;
                         }
@@ -96,8 +96,8 @@ public sealed partial class CpuSensor(ILogger<CpuSensor> logger) : ICpuSensor
 
     public void Dispose()
     {
-        _stream?.Dispose();
-        _stream = null;
+        _temperatureStream?.Dispose();
+        _temperatureStream = null;
 
         GC.SuppressFinalize(this);
     }

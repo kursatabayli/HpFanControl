@@ -9,7 +9,7 @@ public sealed partial class IntegratedGpuProvider(ILogger<IntegratedGpuProvider>
 {
   private readonly ILogger<IntegratedGpuProvider> _logger = logger;
   private string? _tempPath;
-  private FileStream? _stream;
+  private FileStream? _temperatureStream;
   private readonly byte[] _buffer = new byte[16];
 
   private static readonly byte[][] Drivers = ["amdgpu"u8.ToArray(), "i915"u8.ToArray()];
@@ -70,12 +70,12 @@ public sealed partial class IntegratedGpuProvider(ILogger<IntegratedGpuProvider>
   {
     if (_tempPath == null) return 0;
 
-    return SysFs.ReadInt(ref _stream, _tempPath, _buffer) / 1000;
+    return SysFs.ReadInt(ref _temperatureStream, _tempPath, _buffer) / 1000;
   }
 
   public void Dispose()
   {
-    _stream?.Dispose();
+    _temperatureStream?.Dispose();
 
     GC.SuppressFinalize(this);
   }
