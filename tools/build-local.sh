@@ -6,10 +6,10 @@ cd "$(dirname "$0")/.."
 
 echo "Starting local test build..."
 
-VERSION=$(grep -oP '(?<=<Version>)[^<]+' src/HpFanControl.UI/HpFanControl.UI.csproj)
+read -p "Please enter the version number (e.g. 1.0.0): " VERSION
 
 if [ -z "$VERSION" ]; then
-    echo "❌ Error: Could not read version from .csproj file!"
+    echo "❌ Error: Version number cannot be empty!"
     exit 1
 fi
 
